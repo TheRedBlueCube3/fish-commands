@@ -3,10 +3,6 @@
 Copyright © BalaM314, 2026. All Rights Reserved.
 This file contains the FishPlayer class, and many player-related functions.
 */
-var __makeTemplateObject = (this && this.__makeTemplateObject) || function (cooked, raw) {
-    if (Object.defineProperty) { Object.defineProperty(cooked, "raw", { value: raw }); } else { cooked.raw = raw; }
-    return cooked;
-};
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -114,6 +110,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FishPlayer = void 0;
+var i18n_1 = require("/frameworks/i18n");
 var api = __importStar(require("/api"));
 var automod_1 = require("/automod");
 var config_1 = require("/config");
@@ -233,6 +230,7 @@ var FishPlayer = /** @class */ (function () {
             gamesFinished: 0,
             gamesWon: 0,
         };
+        this.locale = "en"; // for i18n
         this.globalStats = this.stats;
         /** Used for the /vanish command. */
         this.showRankPrefix = true;
@@ -417,7 +415,7 @@ var FishPlayer = /** @class */ (function () {
             fishP.updateAutoflaggedStatus();
             fishP.sendWelcomeMessage();
             if (fishP === null || fishP === void 0 ? void 0 : fishP.player)
-                fishP.player.sendMessage(config_1.text.dataFetchFailed);
+                fishP.player.sendMessage((0, i18n_1.i18n)("dataFetchFailed", fishP.player.locale));
             else
                 _this.dataFetchFailedUuids.add(uuid);
         });
@@ -736,6 +734,7 @@ var FishPlayer = /** @class */ (function () {
             fishPlayer.updateName();
             fishPlayer.updateAdminStatus();
             (0, automod_1.checkVPNAndJoins)(fishPlayer);
+            fishPlayer.locale = player.locale;
             //I think this is a better spot for this
             if (fishPlayer.firstJoin())
                 void fishPlayer.showRules();
@@ -1012,21 +1011,21 @@ var FishPlayer = /** @class */ (function () {
     };
     FishPlayer.prototype.sendWelcomeMessage = function () {
         var _this = this;
-        var appealLine = "To appeal, ".concat(config_1.FColor.discord(templateObject_1 || (templateObject_1 = __makeTemplateObject(["join our discord"], ["join our discord"]))), " with ").concat(config_1.FColor.discord(templateObject_2 || (templateObject_2 = __makeTemplateObject(["/discord"], ["/discord"]))), ", or ask a ").concat(ranks_1.Rank.mod.color, "staff member[] in-game.");
+        var appealLine = (0, i18n_1.i18n)("welcome.appeal", this.locale, ranks_1.Rank.mod.color);
         if (FishPlayer.dataFetchFailedUuids.has(this.uuid)) {
-            this.sendMessage(config_1.text.dataFetchFailed);
+            this.sendMessage((0, i18n_1.i18n)("dataFetchFailed", this.locale));
             FishPlayer.dataFetchFailedUuids.delete(this.uuid);
         }
         if (this.marked())
-            this.sendMessage("[gold]Hello there! You are currently [scarlet]marked as a griefer[]. You cannot do anything in-game while marked.\n".concat(appealLine, "\nYour mark will expire automatically ").concat(globals_1.maxTime - this.unmarkTime < 60000 ? "in [red]never[]" : "[green]".concat((0, utils_1.formatTimeRelative)(this.unmarkTime), "[]"), ".\nWe apologize for the inconvenience."));
+            this.sendMessage((0, i18n_1.i18n)("welcome.marked", this.locale, appealLine, globals_1.maxTime - this.unmarkTime < 60000 ? (0, i18n_1.i18n)("expires.never", this.locale) : "[green]".concat((0, utils_1.formatTimeRelativeLocalize)(this.unmarkTime, this.locale), "[])")));
         else if (this.muted())
-            this.sendMessage("[gold]Hello there! You are currently [red]muted[]. You can still play normally, but cannot send chat messages to other non-staff players while muted.\n".concat(appealLine, "\nYour mute will expire automatically ").concat(globals_1.maxTime - this.unmarkTime < 60000 ? "in [red]never[]" : "[green]".concat((0, utils_1.formatTimeRelative)(this.unmuteTime), "[]"), ".\nWe apologize for the inconvenience."));
+            this.sendMessage((0, i18n_1.i18n)("welcome.muted", this.locale, appealLine, globals_1.maxTime - this.unmuteTime < 60000 ? (0, i18n_1.i18n)("expires.never", this.locale) : "[green]".concat((0, utils_1.formatTimeRelativeLocalize)(this.unmuteTime, this.locale), "[])")));
         else if (this.autoflagged)
-            this.sendMessage("[gold]Hello there! You are currently [red]flagged as suspicious[]. You cannot do anything in-game.\n".concat(appealLine, "\nWe apologize for the inconvenience."));
+            this.sendMessage((0, i18n_1.i18n)("welcome.flagged", this.locale, appealLine));
         else if (!this.showRankPrefix)
-            this.sendMessage("[gold]Hello there! Your rank prefix is currently hidden. You can show it again by running [white]/vanish[].");
+            this.sendMessage((0, i18n_1.i18n)("welcome.vanished", this.locale));
         else {
-            this.sendMessage(config_1.text.welcomeMessage());
+            this.sendMessage((0, i18n_1.i18n)(config_1.text.welcomeMessage(), this.locale));
             //show tips
             var showAd = false;
             if (Date.now() - this.lastShownAd > funcs_1.Duration.days(1)) {
@@ -1042,9 +1041,23 @@ var FishPlayer = /** @class */ (function () {
                 this.showAdNext = false;
                 showAd = true;
             }
-            var messagePool = showAd ? config_1.tips.ads : (config_1.Mode.isChristmas && Math.random() > 0.6) ? config_1.tips.christmas : config_1.tips.normal;
-            var messageText = messagePool[Math.floor(Math.random() * messagePool.length)];
-            var message_1 = showAd ? "[gold]".concat(messageText, "[]") : "[gold]Tip: ".concat(messageText, "[]");
+            var willBeChristmas = Math.random() > 0.6;
+            var messagePool = showAd ? config_1.tips.ads : (config_1.Mode.isChristmas && willBeChristmas) ? config_1.tips.christmas : config_1.tips.normal;
+            var poolCategory = showAd ? "ads" :
+                (config_1.Mode.isChristmas && willBeChristmas) ? "christmas" :
+                    "normal";
+            var neededKey = messagePool[Math.floor(Math.random() * messagePool.length)];
+            var messageText = void 0;
+            if (neededKey == "colortags") {
+                messageText = (0, i18n_1.i18n)("tip.".concat(poolCategory, ".").concat(neededKey), this.locale, ["pink", "green", "cyan", "acid", "royal", "coral"][Math.floor(Math.random() * 6)]);
+            }
+            else if (poolCategory == "ads") {
+                messageText = (0, i18n_1.i18n)("tip.".concat(poolCategory, ".").concat(neededKey), this.locale, config_1.text.membershipURL);
+            }
+            else {
+                messageText = (0, i18n_1.i18n)("tip.".concat(poolCategory, ".").concat(neededKey), this.locale);
+            }
+            var message_1 = showAd ? "[gold]".concat(messageText, "[]") : (0, i18n_1.i18n)("tip.prefix", this.locale, messageText);
             //Delay sending the message so it doesn't get lost in the spam of messages that usually occurs when you join
             Timer.schedule(function () { return _this.sendMessage(message_1); }, 3);
         }
@@ -1054,24 +1067,20 @@ var FishPlayer = /** @class */ (function () {
         var _this = this;
         if (this.stelled())
             return;
-        var _loop_1 = function (rankToAssign) {
-            if (!this_1.ranksAtLeast(rankToAssign) && rankToAssign.autoRankData) {
-                if (this_1.joinsAtLeast(rankToAssign.autoRankData.joins) &&
-                    this_1.globalStats.blocksPlaced >= rankToAssign.autoRankData.blocksPlaced &&
-                    this_1.globalStats.timeInGame >= rankToAssign.autoRankData.playtime &&
-                    this_1.globalStats.chatMessagesSent >= rankToAssign.autoRankData.chatMessagesSent &&
-                    (Date.now() - this_1.globalFirstJoined) >= rankToAssign.autoRankData.timeSinceFirstJoin) {
-                    void this_1.setRank(rankToAssign).then(function () {
-                        return _this.sendMessage("You have been automatically promoted to rank ".concat(rankToAssign.coloredName(), "!"));
-                    });
-                }
-            }
-        };
-        var this_1 = this;
         try {
             for (var _b = __values(ranks_1.Rank.autoRanks), _c = _b.next(); !_c.done; _c = _b.next()) {
                 var rankToAssign = _c.value;
-                _loop_1(rankToAssign);
+                if (!this.ranksAtLeast(rankToAssign) && rankToAssign.autoRankData) {
+                    if (this.joinsAtLeast(rankToAssign.autoRankData.joins) &&
+                        this.globalStats.blocksPlaced >= rankToAssign.autoRankData.blocksPlaced &&
+                        this.globalStats.timeInGame >= rankToAssign.autoRankData.playtime &&
+                        this.globalStats.chatMessagesSent >= rankToAssign.autoRankData.chatMessagesSent &&
+                        (Date.now() - this.globalFirstJoined) >= rankToAssign.autoRankData.timeSinceFirstJoin) {
+                        void this.setRank(rankToAssign).then(function () {
+                            return _this.sendMessage((0, i18n_1.i18n)("server.promoted", _this.locale));
+                        });
+                    }
+                }
             }
         }
         catch (e_4_1) { e_4 = { error: e_4_1 }; }
@@ -1352,6 +1361,21 @@ var FishPlayer = /** @class */ (function () {
             Call.sendMessage(message);
         }
     };
+    FishPlayer.locMessageAllWithPerm = function (perm, key) {
+        var args = [];
+        for (var _i = 2; _i < arguments.length; _i++) {
+            args[_i - 2] = arguments[_i];
+        }
+        if (perm) {
+            FishPlayer.forEachPlayer(function (fishP) {
+                if (fishP.hasPerm(perm))
+                    fishP.sendMessage(i18n_1.i18n.apply(void 0, __spreadArray([key, fishP.locale], __read(args), false)));
+            });
+        }
+        else {
+            i18n_1.sendLocalizedMessage.apply(void 0, __spreadArray([key], __read(args), false));
+        }
+    };
     FishPlayer.prototype.position = function () {
         return "(".concat(Math.floor(this.player.x / 8), ", ").concat(Math.floor(this.player.y / 8), ")");
     };
@@ -1425,6 +1449,18 @@ var FishPlayer = /** @class */ (function () {
         if (ratelimit === void 0) { ratelimit = 0; }
         if (Date.now() - this.lastRatelimitedMessage >= ratelimit) {
             (_a = this.player) === null || _a === void 0 ? void 0 : _a.sendMessage(message);
+            this.lastRatelimitedMessage = Date.now();
+        }
+    };
+    /**
+     * Sends this player a localized chat message.
+     * @param ratelimit Time in milliseconds before sending another ratelimited message.
+     */
+    FishPlayer.prototype.sendLocalizedMessage = function (key, ratelimit) {
+        var _a;
+        if (ratelimit === void 0) { ratelimit = 0; }
+        if (Date.now() - this.lastRatelimitedMessage >= ratelimit) {
+            (_a = this.player) === null || _a === void 0 ? void 0 : _a.sendMessage((0, i18n_1.i18n)(key, this.locale));
             this.lastRatelimitedMessage = Date.now();
         }
     };
@@ -1679,4 +1715,3 @@ Events.on(EventType.WorldLoadEvent, function () {
 Events.on(EventType.GameOverEvent, function (e) {
     FishPlayer.onGameOver(e.winner);
 });
-var templateObject_1, templateObject_2;

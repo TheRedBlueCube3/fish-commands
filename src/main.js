@@ -20,6 +20,7 @@ importClass(Packages.java.io.ByteArrayOutputStream);
 importClass(Packages.java.io.DataOutputStream);
 importClass(Packages.java.io.ByteArrayInputStream);
 importClass(Packages.java.io.DataInputStream);
+importClass(Packages.java.util.Locale);
 importPackage(Packages.java.util.concurrent.atomic);
 importPackage(Packages.java.util.regex);
 

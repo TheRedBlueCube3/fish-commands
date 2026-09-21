@@ -259,7 +259,7 @@ export const text = {
 	membershipURL: `https://patreon.com/FishServers`,
 	reportsPing: `<@&1040193678817378305>`,
 	welcomeMessage: () => random([
-		`[gold]Welcome![]`
+		`welcome`
 	]),
 	chatFilterReplacement: {
 		message: () => `I really hope everyone is having a fun time :) <3`,
@@ -289,7 +289,6 @@ export const text = {
 		messageShort: () => string;
 		highlight: () => string;
 	},
-	dataFetchFailed: "[scarlet]\u26A0 Data fetch failed!\n[white]Please disconnect and rejoin the server if you encounter further issues, such as missing rank or statistics.",
 	selectorsHelp: `\
 [coral]-- General selectors --
 These selectors can be used for any command.
@@ -343,63 +342,63 @@ export const FColor = (
 	member: "[pink]",
 	achievement: "[lime]",
 });
-/** Tips that are shown to players randomly. */
+/** keys of tips that are shown to players randomly. */
 export const tips = {
 	ads: [
-		`${FColor.member`Fish Membership`} subscribers can access the ${FColor.member`/pet`} command, which spawns a merui that follows you around. Get a Fish Membership at[sky] ${text.membershipURL} []`,
-		`${FColor.member`Fish Membership`} subscribers can use the ${FColor.member`/highlight`} command, which turns your chat messages to a color of your choice. Get a Fish Membership at[sky] ${text.membershipURL} []`,
-		`${FColor.member`Fish Membership`} subscribers can use the ${FColor.member`/rainbow`} command, which makes your name flash different colors. Get a Fish Membership at[sky] ${text.membershipURL} []`,
-		`Want to support the server and get some perks? Get a ${FColor.member`Fish Membership`} at[sky] ${text.membershipURL} []`,
-		`Join our ${FColor.discord`Discord server`}[]! ${FColor.discord(text.discordURL)} or type ${FColor.discord`/discord`}`,
+		`pets`,
+		`highlight`,
+		`rainbow`,
+		`support`,
+		`discord`,
 	],
 	normal: [
 		//commands
-		`You can spawn an [scarlet]Ohno[] with the [scarlet]/ohno[] command. Ohnos are harmless creatures that were created by fusing an alpha and an atrax.`,
-		`Ohnos cannot be spawned near enemy buildings, because they are peaceful and do not want to be used for attacks.`,
-		`You can use [white]/tp[] to teleport directly to any other player! (But only when you're in a core unit)`,
-		`You can unload bulk conveyors ( or ) with unloaders ( or ).`,
-		`Hate boulders? You can remove them with [white]/clean[].`,
-		`You can check our rules at any time by running [white]/rules[].`,
+		`ohno`,
+		`ohnonospawn`,
+		`usetp`,
+		`conveyors`,
+		`boulders`,
+		`rules`,
 		// `You can kill your unit by running [white]/die[].`,
-		`We have a tilelog system to help catch griefers. Run [white]/tilelog[], then click a tile to see what's happened there.`,
-		`Run [white]/tilelog 1[] to check the tile history of multiple tiles.`,
-		`Tilelog stores when a building is placed, broken, rotated, configured, and picked up/dropped by a payload unit. Access it with [white]/tilelog[]`,
-		`Tilelog doesn't just log tile actions, it also logs unit deaths! Access it with [white]/tilelog[]`,
-		`Did someone kill a T5 with commands? Run [white]/aoelog 0 15 killed[] to check tilelogs for unit deaths in a large area.`,
-		`Aoelog can show the history of tiles in an area. Select the opposite corners of a rectangle to view the history of its tiles.`,
-		`Aoelog is the plural version of tilelog, access it via [white]/aoelog[]`,
-		`You can run [white]/language[] to change your translation language.`,
-		`You can mark yourself as AFK(away from keyboard) with [white]/afk[].`,
-		`Run /survival, /attack, /pvp, /sandbox, /hexed or /minigame to quickly change to another server.`,
-		`Need to get rid of an active griefer? Use [#6FFC7C]/s[] to send a message to all staff members across all servers.`,
-		`Use [white]/help to get more information about a specific command.`,
-		`If you want to send a message to just one player, you can use the [white]/msg[] command.`,
-		`Use [white]/r[] to reply to a message sent by another player.`,
-		`[white]/trail[] can be used to give your unit a trail of particle effects.`,
-		`Run [white]/ranks[] to see all the ranks on our server.`,
-		`Is someone impersonating a staff member? Run [white]/rank[] to see their real rank.`,
-		`Don't like the map? Vote to change it with [white]/rtv[].`,
-		`If you want to end the current map, DO NOT BREAK DEFENCES! Vote to change the map with [white]/rtv[].`,
+		`tilelog`,
+		`tilelog2`,
+		`tilelog3`,
+		`tilelog4`,
+		`aoelog`,
+		`aoelog2`,
+		`aoelog3`,
+		`translation`,
+		`afk`,
+		`serverchange`,
+		`staff`,
+		`help`,
+		`whisper`,
+		`reply`,
+		`trail`,
+		`ranks`,
+		`impersonator`,
+		`rtv`,
+		`rtv2`,
 		//misc
-		`Anyone attempting to impersonate a ranked player, or the server, will have ${prefixes.impersonator} prepended to their name. Beware!`,
-		`Griefers will often be found with the text ${prefixes.marked} prepended to their name: they are harmless and cannot grief again.`,
-		`Don't votekick ${prefixes.marked.slice(0, -3)}[][scarlet]s [gold]if they aren't breaking the rules: they are incapable of griefing more.`,
-		`Players marked as ${prefixes.flagged} have been flagged as suspicious by our detection systems, but they may not be griefers.`,
-		`Need to appeal a moderation action? Join the discord at ${FColor.discord(text.discordURL)} or type /discord`,
-		`Want to send the phrase [white]"/command"[] in chat? Type [white]"./command"[] and the [white].[] will be removed.`,
-		`All commands with a player as an argument support using a menu to specify the player. Just run the command leaving the argument blank (using two spaces if necessary), and a menu will show up.`,
-		`Players with a ${Rank.trusted.prefix} in front of their name aren't staff members, but they do have extra powers.`,
-		`Staff members will have the following prefixes in front of their name: ${Rank.manager.prefix}, ${Rank.admin.prefix}, ${Rank.mod.prefix}`,
-		`Wave cooldown too long? Skip the wait with [white]/vnw[]`,
-		`You can tell new players not to break power voids with [white]/void[]`,
-		`You can add [pink]color[] to things with color tags! Try typing "[[${["pink", "green", "cyan", "acid", "royal", "coral"][Math.floor(Math.random() * 6)]}]Hello" in chat, and see what happens!`
+		`impersonator2`,
+		`griefer`,
+		`novkgrief`,
+		`suspicious`,
+		`appeal`,
+		`command`,
+		`playermenu`,
+		`trusted`,
+		`staffprefix`,
+		`vnw`,
+		`novoids`,
+		`colortags`
 	],
 	christmas: [
-		`Remember to be nice in-game, Santa is watching!`,
-		`Santa's checking his list, so be nice!`,
-		`Have a merry christmas and a happy new year!`,
-		`Fish becomes a bit more jolly around Christmastime!`,
-		`Many server maps have been changed for the season.`,
+		`nice`,
+		`nicelist`,
+		`merrychristmas`,
+		`fishjolly`,
+		`mapchange`,
 	],
 	staff: [
 

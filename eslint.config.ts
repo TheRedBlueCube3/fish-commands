@@ -7,7 +7,7 @@ import tseslint from "typescript-eslint";
 
 export default defineConfig([
 	{
-		ignores: ["build/scripts/", "archived/", "spec/build/", "spec/plugin/", "scripts/*.js", "copy-client.js"],
+		ignores: ["build/scripts/", "archived/", "spec/build/", "spec/plugin/", "scripts/*.js", "copy-client.js", "checkBundles.ts"],
 	},
 	eslint.configs.recommended,
 	...tseslint.configs.recommendedTypeChecked,

@@ -86,6 +86,7 @@ var players_1 = require("/players");
 var config_1 = require("/config");
 var globals_1 = require("/globals");
 var menus_1 = require("/frameworks/menus");
+var i18n_1 = require("/frameworks/i18n");
 exports.globalSusChat = new Ratekeeper();
 exports.votekickActionRate = new Ratekeeper();
 exports.lastVKActions = [];
@@ -216,7 +217,7 @@ function checkVotekickAction(fishP, message) {
                 }
                 finally { if (e_1) throw e_1.error; }
             }
-            (0, utils_1.updateBans)(function (player) { return "[scarlet]Player [yellow]".concat(player.name, "[scarlet] has been whacked automatically for suspected votekick abuse."); });
+            (0, utils_1.updateBansLocalize)("server.bannedvk");
             //Pardon most of the votekick targets (the ones that weren't voted on by a non-sus player)
             var candidatePardons = new Set(exports.lastVKActions.map(function (a) { return a.target; }));
             try {
@@ -257,19 +258,19 @@ function checkVotekickAction(fishP, message) {
         else {
             //Just kick the player
             (0, utils_1.logHTrip)(fishP, "votekick abuse", "sus=".concat(sus));
-            fishP.kick("You have been kicked [accent]automatically[] due to suspicious behavior. Please wait [accent]35[] seconds before rejoining.", 30000);
-            Call.sendMessage("[scarlet]Player [yellow]".concat(fishP.prefixedName, "[scarlet] was kicked due to suspected votekick abuse."));
+            fishP.kick((0, i18n_1.i18n)("server.self.kicked.sus", fishP.locale), 30000);
+            (0, i18n_1.sendLocalizedMessage)("server.kickedvk", fishP.prefixedName);
             //If this message is going to start a votekick, cancel it
             if (message.startsWith("/votekick") && Vars.netServer.currentlyKicking == null)
                 Core.app.post(function () {
-                    Call.sendMessage("[scarlet]Server[lightgray] has voted on kicking[orange] ".concat(target.name, "[lightgray].[accent] (-\u221E/").concat(Vars.netServer.votesRequired(), ")\n\t[scarlet]Vote cancelled due to suspected abuse. [accent]If this is in error, please report it to staff."));
+                    (0, i18n_1.sendLocalizedMessage)("server.votecancelled", target.name, Vars.netServer.votesRequired());
                     if (Vars.netServer.currentlyKicking)
                         Reflect.get(Vars.netServer.currentlyKicking, "task").cancel();
                     Vars.netServer.currentlyKicking = null;
                 });
             //If there is an ongoing votekick and the initiator is suspicious, cancel that
             else if (((_e = exports.lastVKActions.slice().reverse().find(function (a) { return a.type == "start"; })) === null || _e === void 0 ? void 0 : _e.playerSusLevel) == 3) {
-                Call.sendMessage("[scarlet]Server[lightgray] has voted on kicking[orange] ".concat(target.name, "[lightgray].[accent] (-\u221E/").concat(Vars.netServer.votesRequired(), ")\n\t[scarlet]Vote cancelled due to suspected abuse. [accent]If this is in error, please report it to staff."));
+                (0, i18n_1.sendLocalizedMessage)("server.votecancelled", target.name, Vars.netServer.votesRequired());
                 if (Vars.netServer.currentlyKicking)
                     Reflect.get(Vars.netServer.currentlyKicking, "task").cancel();
                 Vars.netServer.currentlyKicking = null;
@@ -283,7 +284,7 @@ function checkVotekickAction(fishP, message) {
                         var voted = Reflect.get(Vars.netServer.currentlyKicking, "voted");
                         voted.put(fishP.uuid, 0);
                         voted.put(fishP.ip(), 0);
-                        Call.sendMessage("[scarlet]Vote cancelled due to suspected abuse. [accent]If this is in error, please report it to staff.");
+                        (0, i18n_1.sendLocalizedMessage)("server.votecancelled2");
                     }
                 });
         }
@@ -304,12 +305,12 @@ function checkChatMessage(fishP) {
     var susLevel = fishP.suspicionLevel();
     if (!fishP.chatSpam.allow(14300, susLevel == 3 ? 3 : susLevel == 2 ? 5 : 30)) {
         if (susLevel == 3 || Date.now() > fishP.kickForSpamAt) {
-            fishP.kick("You have been kicked for spamming.", 30000);
+            fishP.kick((0, i18n_1.i18n)("server.self.kicked.spam", fishP.locale), 30000);
             if (exports.Antibot.antiBotMode())
                 Vars.netServer.admins.blacklistDos(fishP.ip());
         }
         else {
-            fishP.sendMessage("[scarlet]You are sending chat messages too quickly.");
+            fishP.sendLocalizedMessage("server.stopspam");
             fishP.kickForSpamAt = Date.now() + 3000;
         }
     }

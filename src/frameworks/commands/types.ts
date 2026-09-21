@@ -115,6 +115,16 @@ export type FishCommandHandlerUtils = {
 	outputFail(this: void, message: string | PartialFormatString): void;
 	/** Outputs text to the sender. Tab characters are replaced with 4 spaces. */
 	output(this: void, message: string | PartialFormatString): void;
+	/** Outputs internationalized text to the sender. Tab characters are replaced with 4 spaces. */
+	localizedOutput(this: void, key: string, ...fmt: unknown[]): void;
+	/** Outputs internationalized text to the sender, with a fail symbol and yellow color. */
+	outputLocalizedFail(this: void, key: string, ...fmt: unknown[]): void;
+	/** Outputs internationalized text to the sender, with a check mark symbol and green color. */
+	outputLocalizedSuccess(this: void, key: string, ...fmt: unknown[]): void;
+	/** Fails with internationalized text. */
+	localizedFail(this: void, key: string, ...fmt: unknown[]): never;
+	/** Returns internationalized text. */
+	localize(this: void, key: string | TemplateStringsArray, ...fmt: unknown[]): string;
 	/** Use to tag template literals, formatting players, numbers, ranks, and more */
 	f: FFunction;
 	/** Executes a server console command. Be careful! */

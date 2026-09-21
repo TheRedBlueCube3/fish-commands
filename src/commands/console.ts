@@ -9,6 +9,7 @@ import { FishServer, Gamemode, Mode } from "/config";
 import { updateMaps } from "/files";
 import * as fjsContext from "/fjsContext";
 import { consoleCommandList, fail } from "/frameworks/commands";
+import { AddedBundle, i18n, sendLocalizedMessage } from "/frameworks/i18n";
 import { Duration, escapeStringColorsServer, to2DArray } from "/funcs";
 import { FishEvents, fishState, ipPattern, ipPortPattern, maxTime, tileHistory, uuidPattern } from "/globals";
 import { FishPlayer } from "/players";
@@ -27,7 +28,7 @@ export const commands = consoleCommandList({
 			await args.player.setRank(args.rank);
 			logAction(`set rank to ${args.rank.name} for`, "console", args.player);
 			outputSuccess(f`Set rank of player ${args.player} to ${args.rank}`);
-			args.player.sendMessage(`[royal]Your rank has been set to ${args.rank.coloredName()}.`);
+			args.player.sendMessage(i18n(`ranks.set`, args.player.locale, args.rank.coloredName(args.player.locale)));
 		}
 	},
 	admin: {
@@ -474,7 +475,7 @@ export const commands = consoleCommandList({
 			}
 
 			if(time == -1){
-				Call.sendMessage(`[accent]---[[[coral]+++[]]---\n[accent]Server restart queued. The server will restart after the current match is over.[]\n[accent]---[[[coral]+++[]]---`);
+				sendLocalizedMessage("server.willrestart");
 				if(Gamemode.pvp() && timeInferred) Log.info(`PVP: restart will occur at the end of the current game. Specify a time to override, but &rthat would interrupt the current pvp match, and players would lose their teams.&fr`);
 				else Log.info(`Restarting once the current game ends.`);
 				fishState.restartQueued = true;
@@ -484,9 +485,9 @@ export const commands = consoleCommandList({
 				if(time == 0) Log.info(`Restarting now.`);
 				else Log.info(`Restarting in ${time} second${time == 1 ? "" : "s"}.`);
 				if(Gamemode.pvp()){
-					Call.sendMessage(`[accent]---[[[coral]+++[]]---\n[accent]Server restart imminent. [green]We'll be back after 20 seconds.[]\n[accent]---[[[coral]+++[]]---`);
+					sendLocalizedMessage("server.willrestartimminent");
 				} else {
-					Call.sendMessage(`[accent]---[[[coral]+++[]]---\n[accent]Server restart imminent. [green]We'll be back after 20 seconds, and all progress will be saved.[]\n[accent]---[[[coral]+++[]]---`);
+					sendLocalizedMessage("server.willrestartimminentsaved");
 				}
 			}
 		}
@@ -722,7 +723,8 @@ ${FishPlayer.mapPlayers(p =>
 			if(ipPortPattern.test(args.server)){
 				Groups.player.each(target => {
 					//direct connect
-					Call.connect(target.con, ...args.server.split(":"));
+					const ipPort = args.server.split(":");
+					Call.connect(target.con, ipPort[0], ipPort[1]);
 				});
 			} else {
 				const server = FishServer.byName(args.server)

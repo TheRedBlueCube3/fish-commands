@@ -76,6 +76,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.addToTileHistory = exports.foolifyChat = exports.vnwCondition = exports.getMap = exports.getUnitType = exports.getItem = exports.getTeam = void 0;
 exports.memoizeChatFilter = memoizeChatFilter;
+exports.formatTimeLocalize = formatTimeLocalize;
 exports.formatTime = formatTime;
 exports.formatTimeShort = formatTimeShort;
 exports.formatModeName = formatModeName;
@@ -83,6 +84,7 @@ exports.formatTimestampFull = formatTimestampFull;
 exports.formatTimestamp = formatTimestamp;
 exports.formatTimestampShort = formatTimestampShort;
 exports.formatTimeRelative = formatTimeRelative;
+exports.formatTimeRelativeLocalize = formatTimeRelativeLocalize;
 exports.getColor = getColor;
 exports.nearbyEnemyTile = nearbyEnemyTile;
 exports.matchFilter = matchFilter;
@@ -111,8 +113,12 @@ exports.getAntiBotInfo = getAntiBotInfo;
 exports.outputFail = outputFail;
 exports.outputSuccess = outputSuccess;
 exports.outputMessage = outputMessage;
+exports.outputI18nMessage = outputI18nMessage;
+exports.outputI18nSuccess = outputI18nSuccess;
+exports.outputI18nFail = outputI18nFail;
 exports.outputConsole = outputConsole;
 exports.updateBans = updateBans;
+exports.updateBansLocalize = updateBansLocalize;
 exports.processChat = processChat;
 exports.getIPRange = getIPRange;
 exports.getHash = getHash;
@@ -133,6 +139,7 @@ var menus_1 = require("/frameworks/menus");
 var funcs_1 = require("/funcs");
 var globals_1 = require("/globals");
 var players_1 = require("/players");
+var i18n_1 = require("/frameworks/i18n");
 function memoizeChatFilter(impl) {
     var lastCleanedInput = null;
     var lastOutput = null;
@@ -143,6 +150,44 @@ function memoizeChatFilter(impl) {
         lastCleanedInput = cleanedInput;
         return lastOutput = impl(input);
     };
+}
+function formatTimeLocalize(time, locale) {
+    if (globals_1.maxTime - (time + Date.now()) < 20000)
+        return (0, i18n_1.i18n)("time.forever", locale);
+    if (isNaN(time))
+        return (0, i18n_1.i18n)("na", locale);
+    var months = Math.floor(time / (30 * 24 * 60 * 60 * 1000));
+    var days = Math.floor((time % (30 * 24 * 60 * 60 * 1000)) / (24 * 60 * 60 * 1000));
+    var hours = Math.floor((time % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+    var minutes = Math.floor((time % (60 * 60 * 1000)) / (60 * 1000));
+    var seconds = Math.floor((time % (60 * 1000)) / (1000));
+    var monthSingular = (0, i18n_1.i18n)("time.month", locale, months);
+    var daySingular = (0, i18n_1.i18n)("time.day", locale, days);
+    var hourSingular = (0, i18n_1.i18n)("time.hour", locale, hours);
+    var minuteSingular = (0, i18n_1.i18n)("time.minute", locale, minutes);
+    var secondSingular = (0, i18n_1.i18n)("time.second", locale, seconds);
+    var monthPlural = (0, i18n_1.i18n)("time.month.plural", locale, months);
+    var dayPlural = (0, i18n_1.i18n)("time.day.plural", locale, days);
+    var hourPlural = (0, i18n_1.i18n)("time.hour.plural", locale, hours);
+    var minutePlural = (0, i18n_1.i18n)("time.minute.plural", locale, minutes);
+    var secondPlural = (0, i18n_1.i18n)("time.second.plural", locale, seconds);
+    return [
+        // months && `${months} month${months != 1 ? "s" : ""}`,
+        // days && `${days} day${days != 1 ? "s" : ""}`,
+        // hours && `${hours} hour${hours != 1 ? "s" : ""}`,
+        // minutes && `${minutes} minute${minutes != 1 ? "s" : ""}`,
+        // (seconds || time < 1000) && `${seconds} second${seconds != 1 ? "s" : ""}`,
+        // months && i18n("time.month", locale, months, months != 1 ? monthPlural : ""),
+        // days && i18n("time.day", locale, days, days != 1 ? dayPlural : ""),
+        // hours && i18n("time.hour", locale, hours, hours != 1 ? hourPlural : ""),
+        // minutes && i18n("time.minute", locale, minutes, minutes != 1 ? minutePlural : ""),
+        // seconds && i18n("time.second", locale, seconds, seconds != 1 ? secondPlural : ""),
+        months && (months != 1 ? monthPlural : monthSingular),
+        days && (days != 1 ? dayPlural : daySingular),
+        hours && (hours != 1 ? hourPlural : hourSingular),
+        minutes && (minutes != 1 ? minutePlural : minuteSingular),
+        seconds && (seconds != 1 ? secondPlural : secondSingular),
+    ].filter(Boolean).join(", ");
 }
 function formatTime(time) {
     if (globals_1.maxTime - (time + Date.now()) < 20000)
@@ -212,6 +257,15 @@ function formatTimeRelative(time, raw) {
         return (raw ? "" : "in ") + formatTime(difference);
     else
         return formatTime(difference) + (raw ? "" : " ago");
+}
+function formatTimeRelativeLocalize(time, locale, raw) {
+    var difference = Math.abs(time - Date.now());
+    if (difference < 1000)
+        return (0, i18n_1.i18n)("time.now", locale);
+    else if (time > Date.now())
+        return (raw ? "" : (0, i18n_1.i18n)("time.in", locale)) + formatTimeLocalize(difference, locale);
+    else
+        return formatTimeLocalize(difference, locale) + (raw ? "" : " " + (0, i18n_1.i18n)("time.ago", locale));
 }
 /** Attempts to parse a Color from the input. */
 function getColor(input) {
@@ -681,6 +735,31 @@ function outputSuccess(message, sender) {
 function outputMessage(message, sender) {
     sender.sendMessage(((typeof message == "function" && "__partialFormatString" in message ? message(null) : message) + "").replace(/\t/g, " ".repeat(4)));
 }
+function outputI18nMessage(key, sender) {
+    var args = [];
+    for (var _i = 2; _i < arguments.length; _i++) {
+        args[_i - 2] = arguments[_i];
+    }
+    sender.sendMessage((0, i18n_1.i18n)(key, ((sender.locale)), args).replace(/\t/g, " ".repeat(4)));
+}
+function outputI18nSuccess(key, sender) {
+    var args = [];
+    for (var _i = 2; _i < arguments.length; _i++) {
+        args[_i - 2] = arguments[_i];
+    }
+    sender.sendMessage(successPrefix + (0, i18n_1.i18n)(key, ((sender.locale)), args));
+}
+function outputI18nFail(key, sender, ratelimit) {
+    var args = [];
+    for (var _i = 3; _i < arguments.length; _i++) {
+        args[_i - 3] = arguments[_i];
+    }
+    var msg = (0, i18n_1.i18n)(key, sender.locale, args);
+    if (ratelimit)
+        sender.sendMessage(msg, ratelimit);
+    else
+        sender.sendMessage(msg);
+}
 function outputConsole(message, channel) {
     if (channel === void 0) { channel = Log.info; }
     channel(typeof message == "function" && "__partialFormatString" in message ? message("") : message);
@@ -691,6 +770,15 @@ function updateBans(message) {
             player.con.kick(Packets.KickReason.banned);
             if (message)
                 Call.sendMessage(message(player));
+        }
+    });
+}
+function updateBansLocalize(key) {
+    Groups.player.each(function (player) {
+        if (Vars.netServer.admins.isIDBanned(player.uuid())) {
+            player.con.kick(Packets.KickReason.banned);
+            if (key)
+                (0, i18n_1.sendLocalizedMessage)(key, player.name);
         }
     });
 }

@@ -17,6 +17,11 @@ var __read = (this && this.__read) || function (o, n) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.f_server = exports.f_client = exports.processedFFunctions = exports.fFunctions = exports.outputFormatter_client = exports.outputFormatter_server = void 0;
+/*
+Copyright © BalaM314, 2026. All Rights Reserved.
+This file contains the formatting framework.
+*/
+var i18n_1 = require("/frameworks/i18n");
 var funcs_1 = require("/funcs");
 var globals_1 = require("/globals");
 var players_1 = require("/players");
@@ -143,10 +148,22 @@ exports.fFunctions = {
             value ? "&lgtrue&fr" : "&lrfalse&fr",
         ];
     },
+    boolGoodLocalize: function (value, locale) {
+        return [
+            value ? "[green]".concat((0, i18n_1.i18n)("yes", locale), "[]") : "[red]".concat((0, i18n_1.i18n)("no", locale), "[]"),
+            value ? "&lgtrue&fr" : "&lrfalse&fr",
+        ];
+    },
     boolBad: function (value) {
         return [
             value ? "[red]true[]" : "[green]false[]",
             value ? "&lrtrue&fr" : "&lgfalse&fr",
+        ];
+    },
+    boolBadLocalize: function (value, locale) {
+        return [
+            value ? "[red]".concat((0, i18n_1.i18n)("yes", locale), "[]") : "[green]".concat((0, i18n_1.i18n)("no", locale), "[]"),
+            value ? "&lgtrue&fr" : "&lrfalse&fr",
         ];
     },
     percent: function (value, decimals) {

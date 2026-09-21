@@ -2,6 +2,7 @@
 Copyright © BalaM314, 2026. All Rights Reserved.
 This file contains the formatting framework.
 */
+import { i18n } from "/frameworks/i18n";
 import type { Formattable, PartialFormatString } from "/frameworks/commands/types";
 import { capitalizeText, escapeStringColorsServer, tagProcessorPartial } from "/funcs";
 import { ipPattern, uuidPattern } from "/globals";
@@ -106,10 +107,24 @@ export const fFunctions = {
 			value ? `&lgtrue&fr` : `&lrfalse&fr`,
 		];
 	},
+	boolGoodLocalize(value:boolean, locale:string)
+	{
+		return [
+			value ? `[green]${i18n("yes", locale)}[]` : `[red]${i18n("no", locale)}[]`,
+			value ? `&lgtrue&fr` : `&lrfalse&fr`,
+		];
+	},
 	boolBad(value:boolean){
 		return [
 			value ? `[red]true[]` : `[green]false[]`,
 			value ? `&lrtrue&fr` : `&lgfalse&fr`,
+		];
+	},
+	boolBadLocalize(value:boolean, locale:string)
+	{
+		return [
+			value ? `[red]${i18n("yes", locale)}[]` : `[green]${i18n("no", locale)}[]`,
+			value ? `&lgtrue&fr` : `&lrfalse&fr`,
 		];
 	},
 	percent(value:number, decimals = 0){

@@ -3,6 +3,7 @@ Copyright © BalaM314, 2026. All Rights Reserved.
 This file contains the FishPlayer class, and many player-related functions.
 */
 
+import { i18n, sendLocalizedMessage } from "/frameworks/i18n";
 import * as api from "/api";
 import { Automod, checkVPNAndJoins } from "/automod";
 import { automaticNames, FColor, Mode, prefixes, rules, stopAntiEvadeTime, text, tips } from "/config";
@@ -13,7 +14,7 @@ import { FishEvents, fishState, maxTime } from "/globals";
 import { PartialMapRun } from "/maps";
 import { Rank, RankName, RoleFlag, RoleFlagName } from "/ranks";
 import type { FishPlayerData, PlayerHistoryEntry, Stats, UploadedFishPlayerData } from "/types";
-import { cleanText, formatTime, formatTimeRelative, isImpersonator, matchFilter } from "/utils";
+import { cleanText, formatTime, formatTimeRelative, formatTimeRelativeLocalize, isImpersonator, matchFilter } from "/utils";
 
 
 export class FishPlayer<Connected extends boolean = boolean> {
@@ -170,6 +171,7 @@ export class FishPlayer<Connected extends boolean = boolean> {
 		gamesFinished: 0,
 		gamesWon: 0,
 	};
+	locale: string = "en"; // for i18n
 	globalStats: Stats = this.stats;
 	/** Used for the /vanish command. */
 	showRankPrefix:boolean = true;
@@ -328,7 +330,7 @@ export class FishPlayer<Connected extends boolean = boolean> {
 			fishP.updateAdminStatus();
 			fishP.updateAutoflaggedStatus();
 			fishP.sendWelcomeMessage();
-			if(fishP?.player) fishP.player.sendMessage(text.dataFetchFailed);
+			if(fishP?.player) fishP.player.sendMessage(i18n("dataFetchFailed", fishP.player.locale));
 			else this.dataFetchFailedUuids.add(uuid);
 		});
 	}
@@ -557,6 +559,7 @@ export class FishPlayer<Connected extends boolean = boolean> {
 			fishPlayer.updateName();
 			fishPlayer.updateAdminStatus();
 			checkVPNAndJoins(fishPlayer);
+			fishPlayer.locale = player.locale;
 			//I think this is a better spot for this
 			if(fishPlayer.firstJoin()) void fishPlayer.showRules();
 
@@ -804,29 +807,21 @@ If you are unable to change it, please download Mindustry from Steam or itch.io.
 		if(this.trail) Call.effect(Fx[this.trail.type], this.player.x, this.player.y, 0, this.trail.color);
 	}
 	sendWelcomeMessage(){
-		const appealLine = `To appeal, ${FColor.discord`join our discord`} with ${FColor.discord`/discord`}, or ask a ${Rank.mod.color}staff member[] in-game.`;
+		const appealLine = i18n("welcome.appeal", this.locale, Rank.mod.color);
 		if(FishPlayer.dataFetchFailedUuids.has(this.uuid)){
-			this.sendMessage(text.dataFetchFailed);
+			this.sendMessage(i18n("dataFetchFailed", this.locale));
 			FishPlayer.dataFetchFailedUuids.delete(this.uuid);
 		}
 		if(this.marked()) this.sendMessage(
-`[gold]Hello there! You are currently [scarlet]marked as a griefer[]. You cannot do anything in-game while marked.
-${appealLine}
-Your mark will expire automatically ${maxTime - this.unmarkTime < 60_000 ? "in [red]never[]" : `[green]${formatTimeRelative(this.unmarkTime)}[]`}.
-We apologize for the inconvenience.`
+			i18n("welcome.marked", this.locale, appealLine, maxTime - this.unmarkTime < 60_000 ? i18n("expires.never", this.locale) : `[green]${formatTimeRelativeLocalize(this.unmarkTime, this.locale)}[])`)
 		); else if(this.muted()) this.sendMessage(
-`[gold]Hello there! You are currently [red]muted[]. You can still play normally, but cannot send chat messages to other non-staff players while muted.
-${appealLine}
-Your mute will expire automatically ${maxTime - this.unmarkTime < 60_000 ? "in [red]never[]" : `[green]${formatTimeRelative(this.unmuteTime)}[]`}.
-We apologize for the inconvenience.`
+			i18n("welcome.muted", this.locale, appealLine, maxTime - this.unmuteTime < 60_000 ? i18n("expires.never", this.locale) : `[green]${formatTimeRelativeLocalize(this.unmuteTime, this.locale)}[])`)
 		); else if(this.autoflagged) this.sendMessage(
-`[gold]Hello there! You are currently [red]flagged as suspicious[]. You cannot do anything in-game.
-${appealLine}
-We apologize for the inconvenience.`
+			i18n("welcome.flagged", this.locale, appealLine)
 		); else if(!this.showRankPrefix) this.sendMessage(
-`[gold]Hello there! Your rank prefix is currently hidden. You can show it again by running [white]/vanish[].`
+			i18n("welcome.vanished", this.locale)
 		); else {
-			this.sendMessage(text.welcomeMessage());
+			this.sendMessage(i18n(text.welcomeMessage(), this.locale));
 
 			//show tips
 			let showAd = false;
@@ -841,9 +836,26 @@ We apologize for the inconvenience.`
 				this.showAdNext = false;
 				showAd = true;
 			}
-			const messagePool = showAd ? tips.ads : (Mode.isChristmas && Math.random() > 0.6) ? tips.christmas : tips.normal;
-			const messageText = messagePool[Math.floor(Math.random() * messagePool.length)];
-			const message = showAd ? `[gold]${messageText}[]` : `[gold]Tip: ${messageText}[]`;
+			const willBeChristmas = Math.random() > 0.6;
+			const messagePool = showAd ? tips.ads : (Mode.isChristmas && willBeChristmas) ? tips.christmas : tips.normal;
+			const poolCategory = showAd ? "ads" :
+			(Mode.isChristmas && willBeChristmas) ? "christmas" :
+			"normal";
+			const neededKey = messagePool[Math.floor(Math.random() * messagePool.length)];
+			let messageText: string;
+			if(neededKey == "colortags")
+			{
+				messageText = i18n(`tip.${poolCategory}.${neededKey}`, this.locale, ["pink", "green", "cyan", "acid", "royal", "coral"][Math.floor(Math.random() * 6)]);
+			}
+			else if(poolCategory == "ads")
+			{
+				messageText = i18n(`tip.${poolCategory}.${neededKey}`, this.locale, text.membershipURL);
+			}
+			else
+			{
+				messageText = i18n(`tip.${poolCategory}.${neededKey}`, this.locale);
+			}
+			const message = showAd ? `[gold]${messageText}[]` : i18n(`tip.prefix`, this.locale, messageText);
 
 			//Delay sending the message so it doesn't get lost in the spam of messages that usually occurs when you join
 			Timer.schedule(() => this.sendMessage(message), 3);
@@ -861,7 +873,7 @@ We apologize for the inconvenience.`
 					(Date.now() - this.globalFirstJoined) >= rankToAssign.autoRankData.timeSinceFirstJoin
 				){
 					void this.setRank(rankToAssign).then(() =>
-						this.sendMessage(`You have been automatically promoted to rank ${rankToAssign.coloredName()}!`)
+						this.sendMessage(i18n("server.promoted", this.locale))
 					);
 				}
 			}
@@ -1125,6 +1137,19 @@ We apologize for the inconvenience.`
 			Call.sendMessage(message);
 		}
 	}
+	static locMessageAllWithPerm(perm:PermType | undefined, key:string, ...args: unknown[])
+	{
+		if(perm)
+		{
+			FishPlayer.forEachPlayer(fishP => {
+				if(fishP.hasPerm(perm)) fishP.sendMessage(i18n(key, fishP.locale, ...args));
+			});
+		}
+		else
+		{
+			sendLocalizedMessage(key, ...args);
+		}
+	}
 	position(this:FishPlayer<true>):string {
 		return `(${Math.floor(this.player.x / 8)}, ${Math.floor(this.player.y / 8)})`;
 	}
@@ -1187,6 +1212,16 @@ We apologize for the inconvenience.`
 	sendMessage(message:string, ratelimit:number = 0){
 		if(Date.now() - this.lastRatelimitedMessage >= ratelimit){
 			this.player?.sendMessage(message);
+			this.lastRatelimitedMessage = Date.now();
+		}
+	}
+	/**
+	 * Sends this player a localized chat message.
+	 * @param ratelimit Time in milliseconds before sending another ratelimited message.
+	 */
+	sendLocalizedMessage(key:string, ratelimit:number = 0){
+		if(Date.now() - this.lastRatelimitedMessage >= ratelimit){
+			this.player?.sendMessage(i18n(key, this.locale));
 			this.lastRatelimitedMessage = Date.now();
 		}
 	}

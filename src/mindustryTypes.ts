@@ -29,6 +29,18 @@ const Call: {
 	labelReliable(message:string | null, id:number, duration:number, worldx:number, worldy:number, flags:number):void;
 	labelReliable(message:string | null, id:number, duration:number, worldx:number, worldy:number):void;
 	labelReliable(message:string | null, duration:number, worldx:number, worldy:number):void;
+	/** Recommended to use `sendLocalizedToast` for i18n support if there are no keyed format arguments. */
+	infoToast(text: string, duration: number): void;
+	infoToast(text: string): void;
+	infoToast(target: NetConnection, text: string, duration: number): void;
+	/** Recommended to use `sendLocalizedMessage` for i18n support if there are no keyed format arguments. */
+	sendMessage(formatted: string): void;
+	sendMessage(formatted: string, unformatted: string, player: Player | null): void;
+	sendMessage(target: NetConnection, formatted: string, unformatted: string, player: Player | null): void;
+	
+	sound(target: NetConnection, sound: Sound, volume: number, pitch: number, pan: number): void;
+	sound(sound: Sound, volume: number, pitch: number, pan: number): void;
+	connect(target: NetConnection, ip: string, port: string): void;
 	[index: string]: any;
 };
 const Log: {
@@ -257,7 +269,75 @@ type BuiltinMenuListener = (player:mindustryPlayer, option:number) => unknown;
 type BuiltinTextInputListener = (player:mindustryPlayer, text:string | null) => unknown;
 const UnitTypes: Record<string, UnitType>;
 const Sounds: Record<string, Sound>;
-type Sound = any;
+
+/** arc.audio.Sound */
+class Sound
+{
+	bus: AudioBus | null;
+	file: Fi | null;
+	falloffOffset: number;
+	minInterval: number;
+	lastTimePlayed: number;
+	lastVoice: number;
+	lastVolume: number;
+	stream: boolean;
+	lazyLoad: boolean;
+	currentlyLoading: boolean;
+
+	/** Creates music from an external file without copying it. */
+	static createStream(file: Fi): Sound;
+	/** Creates an empty sound. This sound cannot be played until it is loaded. */
+	constructor();
+	/** Loads a sound from a file. */
+	constructor(file: Fi);
+	load(data: number[], stream: boolean): void;
+	load(file: Fi): void;
+	loadLazy(file: Fi): void;
+
+	/**
+     * Plays the sound. If the sound is already playing, it will be played again, concurrently.
+     * Automatically uses the "sfxvolume" setting.
+     * @return the id of the sound instance if successful, or -1 on failure.
+     */
+	play(): number;
+	/**
+     * Plays the sound. If the sound is already playing, it will be played again, concurrently.
+     * Ignores SFX volume setting.
+     * @param volume the volume in the range [0,1]
+     * @return the id of the sound instance if successful, or -1 on failure.
+     */
+	play(volume: number): number;
+	/**
+     * Plays the sound. If the sound is already playing, it will be played again, concurrently.
+     * Automatically uses the "sfxvolume" setting.
+     * @return the id of the sound instance if successful, or -1 on failure.
+     */
+	play(bus: AudioBus): number;
+	play(volume: number, pitch: number, pan: number): number;
+	play(volume: number, pitch: number, pan: number, loop: boolean): number;
+	play(volume: number, pitch: number, pan: number, loop: boolean, checkFrame: boolean): number;
+	/**
+     * Plays the sound. If the sound is already playing, it will be played again, concurrently.
+     * @param volume the volume in the range [0,1]
+     * @param pitch the pitch multiplier, 1 == default, >1 == faster, <1 == slower, the value has to be between 0.5 and 2.0
+     * @param pan panning in the range -1 (full left) to 1 (full right). 0 is center position.
+     * @param checkFrame if true, this sound will not be able to be played twice in the same frame.
+     * @return the id of the sound instance if successful, or -1 on failure.
+     */
+	play(volume: number, pitch: number, pan: number, loop: boolean, checkFrame: boolean, bus: AudioBus): number;
+	/** Sets the bus that will be used for the next play of this SFX. */
+	setBus(bus: AudioBus): void;
+	calcPan(x: number, y: number): number;
+	calcVolume(x: number, y: number): number;
+	valid(): boolean;
+	stop(): void;
+}
+
+/** arc.audio.AudioBus */
+class AudioBus
+{
+
+}
 const Blocks: Record<string, Block>;
 class Block {
 	name: string;
@@ -1107,6 +1187,74 @@ class AtomicInteger {
 }
 class ValidateException extends Error {
 	constructor(player:Player, s: string);
+}
+
+/** java.util.Locale */
+class Locale {
+	language: string;
+	script: string;
+	country: string;
+	variant: string;
+	extensions: Record<string, string>;
+	constructor(language: string);
+	constructor(language: string, country: string);
+	constructor(language: string, country: string, variant: string);
+	static readonly CANADA: Locale;
+	static readonly CANADA_FRENCH: Locale;
+	static readonly CHINA: Locale;
+	static readonly CHINESE: Locale;
+	static readonly ENGLISH: Locale;
+	static readonly FRANCE: Locale;
+	static readonly FRENCH: Locale;
+	static readonly GERMAN: Locale;
+	static readonly GERMANY: Locale;
+	static readonly ITALIAN: Locale;
+	static readonly ITALY: Locale;
+	static readonly JAPAN: Locale;
+	static readonly JAPANESE: Locale;
+	static readonly KOREA: Locale;
+	static readonly KOREAN: Locale;
+	static readonly PRC: Locale;
+	static readonly PRIVATE_USE_EXTENSION:string;
+	static readonly ROOT: Locale;
+	static readonly SIMPLIFIED_CHINESE: Locale;
+	static readonly TAIWAN: Locale;
+	static readonly TRADITIONAL_CHINESE: Locale;
+	static readonly UK: Locale;
+	static readonly UNICODE_LOCALE_EXTENSION: string;
+	static readonly US: Locale;
+	clone():unknown;
+	equals(obj: unknown): boolean;
+	static forLanguageTag(languageTag: string): Locale;
+	static getAvailableLocales(): Locale[];
+	getCountry(): string;
+	static getDefault(): Locale;
+	getDisplayCountry(): string;
+
+	// tbd
+}
+
+class I18NBundle {
+	static getSimpleFormatter():boolean;
+	static setSimpleFormatter(enabled: boolean):void;
+	static createEmptyBundle():I18NBundle;
+	static createBundle(baseFileHandle: Fi): I18NBundle;
+	static createBundle(baseFileHandle: Fi, locale: Locale): I18NBundle;
+	static createBundle(baseFileHandle: Fi, encoding: string): I18NBundle;
+	static createBundle(baseFileHandle: Fi, locale: Locale, encoding: string): I18NBundle;
+	getLocale(): Locale;
+	get(key: string): string;
+	get(key: string, def: string): string;
+	getNotNull(key: string): string;
+	getKeys(): string[];
+	getProperties(): Record<string, string>
+	setProperties(properties: Record<string, string>): void;
+	has(key: string): boolean;
+	format(key: string, ...args: unknown[]): string;
+	formatString(string: string, ...args: unknown[]): string;
+	formatFloat(key: string, value: number, places: number): string;
+	debug(placeholder: string):void;
+	getParent(): I18NBundle;
 }
 
 }

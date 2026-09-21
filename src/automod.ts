@@ -4,12 +4,13 @@ This file contains automatic moderation and antibot code.
 */
 
 import * as api from "/api";
-import { logAction, logHTrip, updateBans } from "/utils";
+import { logAction, logHTrip, updateBans, updateBansLocalize } from "/utils";
 import { Duration, escapeStringColorsServer, escapeTextDiscord } from "/funcs";
 import { FishPlayer } from "/players";
 import { FColor, Gamemode, heuristics, text } from "/config";
 import { fishState, maxTime, uuidPattern } from "/globals";
 import { Menu } from "/frameworks/menus";
+import { i18n, sendLocalizedMessage } from "/frameworks/i18n";
 
 export const globalSusChat = new Ratekeeper();
 export const votekickActionRate = new Ratekeeper();
@@ -131,7 +132,7 @@ function checkVotekickAction(fishP:FishPlayer, message:string){
 					);
 				}
 			}
-			updateBans(player => `[scarlet]Player [yellow]${player.name}[scarlet] has been whacked automatically for suspected votekick abuse.`);
+			updateBansLocalize(`server.bannedvk`);
 			//Pardon most of the votekick targets (the ones that weren't voted on by a non-sus player)
 			const candidatePardons = new Set(lastVKActions.map(a => a.target));
 			for(const action of lastVKActions){
@@ -150,23 +151,17 @@ function checkVotekickAction(fishP:FishPlayer, message:string){
 		} else {
 			//Just kick the player
 			logHTrip(fishP, "votekick abuse", `sus=${sus}`);
-			fishP.kick(`You have been kicked [accent]automatically[] due to suspicious behavior. Please wait [accent]35[] seconds before rejoining.`, 30_000);
-			Call.sendMessage(`[scarlet]Player [yellow]${fishP.prefixedName}[scarlet] was kicked due to suspected votekick abuse.`);
+			fishP.kick(i18n(`server.self.kicked.sus`, fishP.locale), 30_000);
+			sendLocalizedMessage("server.kickedvk", fishP.prefixedName);
 			//If this message is going to start a votekick, cancel it
 			if(message.startsWith("/votekick") && Vars.netServer.currentlyKicking == null) Core.app.post(() => {
-				Call.sendMessage(
-	`[scarlet]Server[lightgray] has voted on kicking[orange] ${target.name}[lightgray].[accent] (-\u221E/${Vars.netServer.votesRequired()})
-	[scarlet]Vote cancelled due to suspected abuse. [accent]If this is in error, please report it to staff.`
-				);
+				sendLocalizedMessage("server.votecancelled", target.name, Vars.netServer.votesRequired());
 				if(Vars.netServer.currentlyKicking) Reflect.get(Vars.netServer.currentlyKicking, "task").cancel();
 				Vars.netServer.currentlyKicking = null;
 			});
 			//If there is an ongoing votekick and the initiator is suspicious, cancel that
 			else if(lastVKActions.slice().reverse().find(a => a.type == "start")?.playerSusLevel == 3){
-				Call.sendMessage(
-	`[scarlet]Server[lightgray] has voted on kicking[orange] ${target.name}[lightgray].[accent] (-\u221E/${Vars.netServer.votesRequired()})
-	[scarlet]Vote cancelled due to suspected abuse. [accent]If this is in error, please report it to staff.`
-				);
+				sendLocalizedMessage("server.votecancelled", target.name, Vars.netServer.votesRequired());
 				if(Vars.netServer.currentlyKicking) Reflect.get(Vars.netServer.currentlyKicking, "task").cancel();
 				Vars.netServer.currentlyKicking = null;
 			}
@@ -178,7 +173,7 @@ function checkVotekickAction(fishP:FishPlayer, message:string){
 					const voted = Reflect.get(Vars.netServer.currentlyKicking, "voted");
 					voted.put(fishP.uuid, 0);
 					voted.put(fishP.ip(), 0);
-					Call.sendMessage(`[scarlet]Vote cancelled due to suspected abuse. [accent]If this is in error, please report it to staff.`);
+					sendLocalizedMessage("server.votecancelled2");
 				}
 			});
 		}
@@ -204,10 +199,10 @@ function checkChatMessage(fishP:FishPlayer){
 	const susLevel = fishP.suspicionLevel();
 	if(!fishP.chatSpam.allow(14_300, susLevel == 3 ? 3 : susLevel == 2 ? 5 : 30)){
 		if(susLevel == 3 || Date.now() > fishP.kickForSpamAt!){
-			fishP.kick("You have been kicked for spamming.", 30_000);
+			fishP.kick(i18n("server.self.kicked.spam", fishP.locale), 30_000);
 			if(Antibot.antiBotMode()) Vars.netServer.admins.blacklistDos(fishP.ip());
 		} else {
-			fishP.sendMessage("[scarlet]You are sending chat messages too quickly.");
+			fishP.sendLocalizedMessage("server.stopspam");
 			fishP.kickForSpamAt = Date.now() + 3_000;
 		}
 	}

@@ -131,6 +131,7 @@ var config_1 = require("/config");
 var files_1 = require("/files");
 var fjsContext = __importStar(require("/fjsContext"));
 var commands_1 = require("/frameworks/commands");
+var i18n_1 = require("/frameworks/i18n");
 var menus_1 = require("/frameworks/menus");
 var funcs_1 = require("/funcs");
 var globals_1 = require("/globals");
@@ -440,7 +441,7 @@ exports.commands = (0, commands_1.commandList)({
                             (0, utils_1.logAction)("set rank to ".concat(rank.name, " for"), sender, player);
                             outputSuccess(f(templateObject_20 || (templateObject_20 = __makeTemplateObject(["Set rank of player ", " to ", ""], ["Set rank of player ", " to ", ""])), player, rank));
                             if (player !== sender)
-                                player.sendMessage("[royal]Your rank has been set to ".concat(rank.coloredName(), "."));
+                                player.sendMessage((0, i18n_1.i18n)("ranks.set", player.locale, rank.coloredName(player.locale)));
                             return [2 /*return*/];
                     }
                 });
@@ -545,13 +546,13 @@ exports.commands = (0, commands_1.commandList)({
         description: "Saves the game state.",
         perm: commands_1.Perm.mod,
         handler: function (_a) {
-            var outputSuccess = _a.outputSuccess;
+            var localizedSuccess = _a.outputLocalizedSuccess;
             players_1.FishPlayer.saveAll();
             players_1.FishPlayer.uploadAll();
             globals_1.FishEvents.fire("saveData", []);
             var file = Vars.saveDirectory.child("1.".concat(Vars.saveExtension));
             SaveIO.save(file);
-            outputSuccess("Game saved.");
+            localizedSuccess("server.saved");
         }
     },
     wave: {
@@ -966,7 +967,7 @@ exports.commands = (0, commands_1.commandList)({
             var names = args.showColors
                 ? info.names.map(funcs_1.escapeStringColorsClient).toString(", ")
                 : __spreadArray([], __read(new Set(info.names.map(function (n) { return Strings.stripColors(n); }).toArray())), false).join(", ");
-            output(f(templateObject_51 || (templateObject_51 = __makeTemplateObject(["[accent]Info for player ", " [gray](", ") (#", ")\n\t[accent]Rank: ", "\n\t[accent]Role flags: ", "\n\t[accent]Stopped: ", "\n\t[accent]marked: ", "\n\t[accent]muted: ", "\n\t[accent]autoflagged: ", "\n\t[accent]VPN detected: ", "\n\t[accent]times joined / kicked: ", "/", "\n\t[accent]First joined: ", "\n\t[accent]Names used: [[", "]"], ["\\\n[accent]Info for player ", " [gray](", ") (#", ")\n\t[accent]Rank: ", "\n\t[accent]Role flags: ", "\n\t[accent]Stopped: ", "\n\t[accent]marked: ", "\n\t[accent]muted: ", "\n\t[accent]autoflagged: ", "\n\t[accent]VPN detected: ", "\n\t[accent]times joined / kicked: ", "/", "\n\t[accent]First joined: ", "\n\t[accent]Names used: [[", "]"])), args.target, (0, funcs_1.escapeStringColorsClient)(copy(args.target.name)), (_c = (_b = args.target.player) === null || _b === void 0 ? void 0 : _b.id.toString()) !== null && _c !== void 0 ? _c : 'unknown', args.target.rank, copy(Array.from(args.target.flags).map(function (f) { return f.coloredName(); }).join(" ")), f.boolBad(!args.target.hasPerm("play")), args.target.marked() ? "until ".concat(copy((0, utils_1.formatTimeRelative)(args.target.unmarkTime))) : "[green]false", args.target.muted() ? "until ".concat(copy((0, utils_1.formatTimeRelative)(args.target.unmuteTime))) : "[green]false", f.boolBad(args.target.autoflagged), f.boolBad(args.target.ipDetectedVpn), info.timesJoined, info.timesKicked, args.target.firstJoined < 1 ? "unknown" : (0, utils_1.formatTimeRelative)(args.target.firstJoined), names));
+            output(f(templateObject_51 || (templateObject_51 = __makeTemplateObject(["[accent]Info for player ", " [gray](", ") (#", ")\n\t[accent]Rank: ", "\n\t[accent]Role flags: ", "\n\t[accent]Stopped: ", "\n\t[accent]marked: ", "\n\t[accent]muted: ", "\n\t[accent]autoflagged: ", "\n\t[accent]VPN detected: ", "\n\t[accent]times joined / kicked: ", "/", "\n\t[accent]First joined: ", "\n\t[accent]Names used: [[", "]"], ["\\\n[accent]Info for player ", " [gray](", ") (#", ")\n\t[accent]Rank: ", "\n\t[accent]Role flags: ", "\n\t[accent]Stopped: ", "\n\t[accent]marked: ", "\n\t[accent]muted: ", "\n\t[accent]autoflagged: ", "\n\t[accent]VPN detected: ", "\n\t[accent]times joined / kicked: ", "/", "\n\t[accent]First joined: ", "\n\t[accent]Names used: [[", "]"])), args.target, (0, funcs_1.escapeStringColorsClient)(copy(args.target.name)), (_c = (_b = args.target.player) === null || _b === void 0 ? void 0 : _b.id.toString()) !== null && _c !== void 0 ? _c : 'unknown', args.target.rank, copy(Array.from(args.target.flags).map(function (f) { return f.coloredName(sender.locale); }).join(" ")), f.boolBad(!args.target.hasPerm("play")), args.target.marked() ? "until ".concat(copy((0, utils_1.formatTimeRelative)(args.target.unmarkTime))) : "[green]false", args.target.muted() ? "until ".concat(copy((0, utils_1.formatTimeRelative)(args.target.unmuteTime))) : "[green]false", f.boolBad(args.target.autoflagged), f.boolBad(args.target.ipDetectedVpn), info.timesJoined, info.timesKicked, args.target.firstJoined < 1 ? "unknown" : (0, utils_1.formatTimeRelative)(args.target.firstJoined), names));
             if (sender.hasPerm("viewUUIDs"))
                 output(f(templateObject_52 || (templateObject_52 = __makeTemplateObject(["\t[#FFAAAA]UUID: ", ""], ["\\t[#FFAAAA]UUID: ", ""])), copy(args.target.uuid)));
             if (sender.hasPerm("viewIPs"))

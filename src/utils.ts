@@ -13,6 +13,7 @@ import { crash, Duration, escapeStringColorsServer, escapeTextDiscord, parseErro
 import { dosBlacklistCopy, FishEvents, fishState, ipPattern, ipPortPattern, ipRangeCIDRPattern, ipRangeWildcardPattern, maxTime, tileHistory, uuidPattern } from "/globals";
 import { FishPlayer } from "/players";
 import { SelectEnumClassKeys } from "/types";
+import { i18n, sendLocalizedMessage } from "/frameworks/i18n";
 
 
 export function memoizeChatFilter(impl:(arg:string) => string){
@@ -24,6 +25,47 @@ export function memoizeChatFilter(impl:(arg:string) => string){
 		lastCleanedInput = cleanedInput;
 		return lastOutput = impl(input);
 	};
+}
+
+export function formatTimeLocalize(time:number, locale:string)
+{
+	if(maxTime - (time + Date.now()) < 20_000) return i18n("time.forever", locale);
+	if(isNaN(time)) return i18n("na", locale);
+
+	const months = Math.floor(time / (30 * 24 * 60 * 60 * 1000));
+	const days = Math.floor((time % (30 * 24 * 60 * 60 * 1000)) / (24 * 60 * 60 * 1000));
+	const hours = Math.floor((time % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+	const minutes = Math.floor((time % (60 * 60 * 1000)) / (60 * 1000));
+	const seconds = Math.floor((time % (60 * 1000)) / (1000));
+
+	const monthSingular = i18n("time.month", locale, months);
+	const daySingular = i18n("time.day", locale, days);
+	const hourSingular = i18n("time.hour", locale, hours);
+	const minuteSingular = i18n("time.minute", locale, minutes);
+	const secondSingular = i18n("time.second", locale, seconds);
+	const monthPlural = i18n("time.month.plural", locale, months);
+	const dayPlural = i18n("time.day.plural", locale, days);
+	const hourPlural = i18n("time.hour.plural", locale, hours);
+	const minutePlural = i18n("time.minute.plural", locale, minutes);
+	const secondPlural = i18n("time.second.plural", locale, seconds);
+
+	return [
+		// months && `${months} month${months != 1 ? "s" : ""}`,
+		// days && `${days} day${days != 1 ? "s" : ""}`,
+		// hours && `${hours} hour${hours != 1 ? "s" : ""}`,
+		// minutes && `${minutes} minute${minutes != 1 ? "s" : ""}`,
+		// (seconds || time < 1000) && `${seconds} second${seconds != 1 ? "s" : ""}`,
+		// months && i18n("time.month", locale, months, months != 1 ? monthPlural : ""),
+		// days && i18n("time.day", locale, days, days != 1 ? dayPlural : ""),
+		// hours && i18n("time.hour", locale, hours, hours != 1 ? hourPlural : ""),
+		// minutes && i18n("time.minute", locale, minutes, minutes != 1 ? minutePlural : ""),
+		// seconds && i18n("time.second", locale, seconds, seconds != 1 ? secondPlural : ""),
+		months && (months != 1 ? monthPlural : monthSingular),
+		days && (days != 1 ? dayPlural : daySingular),
+		hours && (hours != 1 ? hourPlural : hourSingular),
+		minutes && (minutes != 1 ? minutePlural : minuteSingular),
+		seconds && (seconds != 1 ? secondPlural : secondSingular),
+	].filter(Boolean).join(", ");
 }
 
 export function formatTime(time:number){
@@ -103,6 +145,17 @@ export function formatTimeRelative(time:number, raw?:boolean){
 		return (raw ? "" : "in ") + formatTime(difference);
 	else
 		return formatTime(difference) + (raw ? "" : " ago");
+}
+
+export function formatTimeRelativeLocalize(time:number, locale:string, raw?:boolean)
+{
+	const difference = Math.abs(time - Date.now());
+	if(difference < 1000)
+		return i18n("time.now", locale);
+	else if(time > Date.now())
+		return (raw ? "" : i18n("time.in", locale)) + formatTimeLocalize(difference, locale);
+	else
+		return formatTimeLocalize(difference, locale) + (raw ? "" : " " + i18n("time.ago", locale));
 }
 
 /** Attempts to parse a Color from the input. */
@@ -540,6 +593,38 @@ export function outputSuccess(message:string | PartialFormatString, sender:mindu
 export function outputMessage(message:string | PartialFormatString, sender:mindustryPlayer | FishPlayer){
 	sender.sendMessage(((typeof message == "function" && "__partialFormatString" in message ? message(null) : message) + "").replace(/\t/g, " ".repeat(4)));
 }
+export function outputI18nMessage(key:string, sender:mindustryPlayer | FishPlayer, ...args: unknown[]){
+	sender.sendMessage(i18n(key, ((sender.locale)), args).replace(/\t/g, " ".repeat(4)));
+}
+export function outputI18nSuccess(key:string, sender:mindustryPlayer | FishPlayer, ...args: unknown[]){
+	sender.sendMessage(successPrefix + i18n(key, ((sender.locale)), args));
+}
+export function outputI18nFail(
+  key: string,
+  sender: mindustryPlayer,
+  ratelimit: never,
+  ...args: unknown[]
+): void;
+export function outputI18nFail(
+  key: string,
+  sender: FishPlayer,
+  ratelimit: number,
+  ...args: unknown[]
+): void;
+export function outputI18nFail(
+	key: string,
+	sender: mindustryPlayer | FishPlayer,
+	ratelimit?: number,
+	...args: unknown[]
+) {
+	const msg = i18n(
+		key,
+		sender.locale,
+		args,
+	);
+	if (ratelimit) sender.sendMessage(msg, ratelimit);
+	else sender.sendMessage(msg);
+}
 export function outputConsole(message:string | PartialFormatString, channel:(typeof Log)[LogLevelName] = Log.info){
 	channel(typeof message == "function" && "__partialFormatString" in message ? message("") : message);
 }
@@ -550,6 +635,15 @@ export function updateBans(message?:(player:mindustryPlayer) => string){
 			player.con.kick(Packets.KickReason.banned);
 			if(message)
 				Call.sendMessage(message(player));
+		}
+	});
+}
+export function updateBansLocalize(key?: string){
+	Groups.player.each(player => {
+		if(Vars.netServer.admins.isIDBanned(player.uuid())){
+			player.con.kick(Packets.KickReason.banned);
+			if(key)
+				sendLocalizedMessage(key, player.name);
 		}
 	});
 }

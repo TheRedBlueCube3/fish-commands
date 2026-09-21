@@ -9,6 +9,7 @@ import { Gamemode, Mode, rules, stopAntiEvadeTime } from "/config";
 import { updateMaps } from "/files";
 import * as fjsContext from "/fjsContext";
 import { command, commandList, fail, Perm, Req } from "/frameworks/commands";
+import { i18n } from "/frameworks/i18n";
 import { listeners, Menu } from "/frameworks/menus";
 import { crash, delay, Duration, escapeStringColorsClient, escapeTextDiscord, parseError, setToArray, to2DArray } from "/funcs";
 import { FishEvents, fishState, ipPattern, maxTime, uuidPattern } from "/globals";
@@ -222,7 +223,7 @@ export const commands = commandList({
 			await player.setRank(rank);
 			logAction(`set rank to ${rank.name} for`, sender, player);
 			outputSuccess(f`Set rank of player ${player} to ${rank}`);
-			if(player !== sender) player.sendMessage(`[royal]Your rank has been set to ${rank.coloredName()}.`);
+			if(player !== sender) player.sendMessage(i18n(`ranks.set`, player.locale, rank.coloredName(player.locale)));
 		}
 	},
 
@@ -310,13 +311,13 @@ export const commands = commandList({
 		args: [],
 		description: "Saves the game state.",
 		perm: Perm.mod,
-		handler({outputSuccess}){
+		handler({outputLocalizedSuccess: localizedSuccess}){
 			FishPlayer.saveAll();
 			FishPlayer.uploadAll();
 			FishEvents.fire("saveData", []);
 			const file = Vars.saveDirectory.child(`1.${Vars.saveExtension}`);
 			SaveIO.save(file);
-			outputSuccess("Game saved.");
+			localizedSuccess("server.saved");
 		}
 	},
 
@@ -676,7 +677,7 @@ export const commands = commandList({
 			output(f`\
 [accent]Info for player ${args.target} [gray](${escapeStringColorsClient(copy(args.target.name))}) (#${args.target.player?.id.toString() ?? 'unknown'})
 	[accent]Rank: ${args.target.rank}
-	[accent]Role flags: ${copy(Array.from(args.target.flags).map(f => f.coloredName()).join(" "))}
+	[accent]Role flags: ${copy(Array.from(args.target.flags).map(f => f.coloredName(sender.locale)).join(" "))}
 	[accent]Stopped: ${f.boolBad(!args.target.hasPerm("play"))}
 	[accent]marked: ${args.target.marked() ? `until ${copy(formatTimeRelative(args.target.unmarkTime))}` : "[green]false"}
 	[accent]muted: ${args.target.muted() ? `until ${copy(formatTimeRelative(args.target.unmuteTime))}` : "[green]false"}

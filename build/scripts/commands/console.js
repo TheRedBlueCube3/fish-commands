@@ -103,15 +103,6 @@ var __values = (this && this.__values) || function(o) {
     };
     throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
 };
-var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
-    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
-        if (ar || !(i in from)) {
-            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
-            ar[i] = from[i];
-        }
-    }
-    return to.concat(ar || Array.prototype.slice.call(from));
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.commands = void 0;
 var api = __importStar(require("/api"));
@@ -120,6 +111,7 @@ var config_1 = require("/config");
 var files_1 = require("/files");
 var fjsContext = __importStar(require("/fjsContext"));
 var commands_1 = require("/frameworks/commands");
+var i18n_1 = require("/frameworks/i18n");
 var funcs_1 = require("/funcs");
 var globals_1 = require("/globals");
 var players_1 = require("/players");
@@ -144,7 +136,7 @@ exports.commands = (0, commands_1.consoleCommandList)({
                             _c.sent();
                             (0, utils_1.logAction)("set rank to ".concat(args.rank.name, " for"), "console", args.player);
                             outputSuccess(f(templateObject_3 || (templateObject_3 = __makeTemplateObject(["Set rank of player ", " to ", ""], ["Set rank of player ", " to ", ""])), args.player, args.rank));
-                            args.player.sendMessage("[royal]Your rank has been set to ".concat(args.rank.coloredName(), "."));
+                            args.player.sendMessage((0, i18n_1.i18n)("ranks.set", args.player.locale, args.rank.coloredName(args.player.locale)));
                             return [2 /*return*/];
                     }
                 });
@@ -730,7 +722,7 @@ exports.commands = (0, commands_1.consoleCommandList)({
                 time !== null && time !== void 0 ? time : (time = 60);
             }
             if (time == -1) {
-                Call.sendMessage("[accent]---[[[coral]+++[]]---\n[accent]Server restart queued. The server will restart after the current match is over.[]\n[accent]---[[[coral]+++[]]---");
+                (0, i18n_1.sendLocalizedMessage)("server.willrestart");
                 if (config_1.Gamemode.pvp() && timeInferred)
                     Log.info("PVP: restart will occur at the end of the current game. Specify a time to override, but &rthat would interrupt the current pvp match, and players would lose their teams.&fr");
                 else
@@ -746,10 +738,10 @@ exports.commands = (0, commands_1.consoleCommandList)({
                 else
                     Log.info("Restarting in ".concat(time, " second").concat(time == 1 ? "" : "s", "."));
                 if (config_1.Gamemode.pvp()) {
-                    Call.sendMessage("[accent]---[[[coral]+++[]]---\n[accent]Server restart imminent. [green]We'll be back after 20 seconds.[]\n[accent]---[[[coral]+++[]]---");
+                    (0, i18n_1.sendLocalizedMessage)("server.willrestartimminent");
                 }
                 else {
-                    Call.sendMessage("[accent]---[[[coral]+++[]]---\n[accent]Server restart imminent. [green]We'll be back after 20 seconds, and all progress will be saved.[]\n[accent]---[[[coral]+++[]]---");
+                    (0, i18n_1.sendLocalizedMessage)("server.willrestartimminentsaved");
                 }
             }
         }
@@ -1016,7 +1008,8 @@ exports.commands = (0, commands_1.consoleCommandList)({
             if (globals_1.ipPortPattern.test(args.server)) {
                 Groups.player.each(function (target) {
                     //direct connect
-                    Call.connect.apply(Call, __spreadArray([target.con], __read(args.server.split(":")), false));
+                    var ipPort = args.server.split(":");
+                    Call.connect(target.con, ipPort[0], ipPort[1]);
                 });
             }
             else {

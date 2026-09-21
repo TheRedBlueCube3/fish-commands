@@ -58,6 +58,7 @@ var funcs_1 = require("/funcs");
 var globals_1 = require("/globals");
 var players_1 = require("/players");
 var utils_1 = require("/utils");
+var i18n_1 = require("/frameworks/i18n");
 /** Must be called once, and only once, on server start. */
 function initializeTimers() {
     Timer.schedule(function () {
@@ -74,7 +75,7 @@ function initializeTimers() {
             players_1.FishPlayer.saveAll();
             players_1.FishPlayer.uploadAll();
             Log.debug("Save/upload @", Time.elapsed());
-            Call.sendMessage('[#4fff8f9f]Game saved.');
+            Groups.player.each(function (p) { return p.sendMessage("[#4fff8f9f]" + (0, i18n_1.i18n)("server.saved", p.locale)); });
             globals_1.FishEvents.fire("saveData", []);
             Log.debug("autosave on main thread @", Time.elapsed());
         });
@@ -143,17 +144,33 @@ function initializeTimers() {
     //Tip
     Timer.schedule(function () {
         var showAd = Math.random() < 0.10; //10% chance every 15 minutes
+        var willBeChristmas = Math.random() > 0.5;
         var messagePool = showAd ? config.tips.ads :
-            (config.Mode.isChristmas && Math.random() > 0.5) ? config.tips.christmas :
+            (config.Mode.isChristmas && willBeChristmas) ? config.tips.christmas :
                 config.tips.normal;
-        var messageText = messagePool[Math.floor(Math.random() * messagePool.length)];
-        var message = showAd ? "[gold]".concat(messageText, "[]") : "[gold]Tip: ".concat(messageText, "[]");
-        Call.sendMessage(message);
+        var poolCategory = showAd ? "ads" :
+            (config.Mode.isChristmas && willBeChristmas) ? "christmas" :
+                "normal";
+        var neededKey = messagePool[Math.floor(Math.random() * messagePool.length)];
+        Groups.player.each(function (p) {
+            var messageText;
+            if (neededKey == "colortags") {
+                messageText = (0, i18n_1.i18n)("tip.".concat(poolCategory, ".").concat(neededKey), p.locale, ["pink", "green", "cyan", "acid", "royal", "coral"][Math.floor(Math.random() * 6)]);
+            }
+            else if (poolCategory == "ads") {
+                messageText = (0, i18n_1.i18n)("tip.".concat(poolCategory, ".").concat(neededKey), p.locale, config.text.membershipURL);
+            }
+            else {
+                messageText = (0, i18n_1.i18n)("tip.".concat(poolCategory, ".").concat(neededKey), p.locale);
+            }
+            var message = showAd ? "[gold]".concat(messageText, "[]") : (0, i18n_1.i18n)("tip.prefix", p.locale, messageText);
+            p.sendMessage(message);
+        });
     }, 60, funcs_1.DurationSecs.minutes(15));
     //State check
     Timer.schedule(function () {
         if (Groups.unit.size() > 10000) {
-            Call.sendMessage("\n[scarlet]!!!!!\n[scarlet]Way too many units! Game over!\n[scarlet]!!!!!\n");
+            (0, i18n_1.sendLocalizedMessage)("server.toomanyunits");
             Groups.unit.clear();
             (0, utils_1.neutralGameover)();
         }
@@ -170,7 +187,7 @@ function initializeTimers() {
     }, 0, funcs_1.DurationSecs.minutes(1));
     Timer.schedule(function () {
         if (automod_1.Antibot.antiBotMode()) {
-            Call.infoToast("[scarlet]ANTIBOT ACTIVE!!![] DOS blacklist size: ".concat(Vars.netServer.admins.dosBlacklist.size), 2);
+            (0, i18n_1.sendLocalizedToast)("server.antibot", 2, Vars.netServer.admins.dosBlacklist.size);
         }
     }, 0, 1);
 }
@@ -178,13 +195,13 @@ Timer.schedule(function () {
     (0, files_1.updateMaps)()
         .then(function (result) {
         if (result) {
-            Call.sendMessage("[orange]Maps have been updated. Run [white]/maps[] to view available maps.");
+            (0, i18n_1.sendLocalizedMessage)("server.mapupdate");
             Log.info("Updated maps.");
         }
     })
         .catch(function (message) {
         if (Date.now() - globals_1.fishState.lastSuccessfulMapUpdate >= funcs_1.Duration.hours(1))
-            Call.sendMessage("[scarlet]Automated maps update failed too many times, please report this to a staff member.");
+            (0, i18n_1.sendLocalizedMessage)("server.mapupdateerror");
         Log.err("Automated map update failed: ".concat(String(message)));
     });
 }, funcs_1.DurationSecs.minutes(1), funcs_1.DurationSecs.minutes(10));

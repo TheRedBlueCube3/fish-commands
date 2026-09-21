@@ -136,6 +136,7 @@ exports.register = register;
 exports.registerConsole = registerConsole;
 exports.initialize = initialize;
 exports.reset = reset;
+var i18n_1 = require("/frameworks/i18n");
 var api = __importStar(require("/api"));
 var config_1 = require("/config");
 var errors_1 = require("/frameworks/commands/errors");
@@ -701,11 +702,11 @@ function processArgs(args, processedCmdArgs, sender, commandName) {
                                 case 60:
                                     _t.sent();
                                     return [3 /*break*/, 68];
-                                case 61: return [4 /*yield*/, disambiguateArgument.apply(void 0, __spreadArray(__spreadArray([ranks_1.Rank.search(args[i])], __read(commonArgs), false), [function (r) { return r.coloredName(); }], false))];
+                                case 61: return [4 /*yield*/, disambiguateArgument.apply(void 0, __spreadArray(__spreadArray([ranks_1.Rank.search(args[i])], __read(commonArgs), false), [function (r) { return r.coloredName(sender.locale); }], false))];
                                 case 62:
                                     _t.sent();
                                     return [3 /*break*/, 68];
-                                case 63: return [4 /*yield*/, disambiguateArgument.apply(void 0, __spreadArray(__spreadArray([ranks_1.RoleFlag.search(args[i])], __read(commonArgs), false), [function (f) { return f.coloredName(); }], false))];
+                                case 63: return [4 /*yield*/, disambiguateArgument.apply(void 0, __spreadArray(__spreadArray([ranks_1.RoleFlag.search(args[i])], __read(commonArgs), false), [function (f) { return f.coloredName(sender.locale); }], false))];
                                 case 64:
                                     _t.sent();
                                     return [3 /*break*/, 68];
@@ -909,6 +910,46 @@ function register(commands, clientHandler, serverHandler) {
                                     outputFail: function (message) { (0, utils_1.outputFail)(message, sender); failed = true; },
                                     outputSuccess: function (message) { return (0, utils_1.outputSuccess)(message, sender); },
                                     output: function (message) { return (0, utils_1.outputMessage)(message, sender); },
+                                    localizedOutput: function (key) {
+                                        var fmt = [];
+                                        for (var _i = 1; _i < arguments.length; _i++) {
+                                            fmt[_i - 1] = arguments[_i];
+                                        }
+                                        return utils_1.outputI18nMessage.apply(void 0, __spreadArray([key, sender], __read(fmt), false));
+                                    },
+                                    outputLocalizedFail: function (key) {
+                                        var fmt = [];
+                                        for (var _i = 1; _i < arguments.length; _i++) {
+                                            fmt[_i - 1] = arguments[_i];
+                                        }
+                                        utils_1.outputI18nMessage.apply(void 0, __spreadArray([key, sender], __read(fmt), false));
+                                        failed = true;
+                                    },
+                                    outputLocalizedSuccess: function (key) {
+                                        var fmt = [];
+                                        for (var _i = 1; _i < arguments.length; _i++) {
+                                            fmt[_i - 1] = arguments[_i];
+                                        }
+                                        return utils_1.outputI18nSuccess.apply(void 0, __spreadArray([key, sender], __read(fmt), false));
+                                    },
+                                    localizedFail: function (key) {
+                                        var fmt = [];
+                                        for (var _i = 1; _i < arguments.length; _i++) {
+                                            fmt[_i - 1] = arguments[_i];
+                                        }
+                                        var message = i18n_1.i18n.apply(void 0, __spreadArray([key, sender.locale], __read(fmt), false));
+                                        var err = new Error(message);
+                                        err.data = message;
+                                        Object.setPrototypeOf(err, errors_1.CommandError.prototype);
+                                        throw err;
+                                    },
+                                    localize: function (key) {
+                                        var fmt = [];
+                                        for (var _i = 1; _i < arguments.length; _i++) {
+                                            fmt[_i - 1] = arguments[_i];
+                                        }
+                                        return (0, i18n_1.i18n)(typeof key == "string" ? key : key[0], sender.locale, fmt);
+                                    },
                                     f: formatting_1.f_client,
                                     execServer: function (command) { return serverHandler.handleMessage(command); },
                                     admins: Vars.netServer.admins,

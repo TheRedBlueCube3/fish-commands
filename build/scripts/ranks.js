@@ -5,15 +5,15 @@ This file contains the definitions for ranks and role flags.
 */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RoleFlag = exports.Rank = void 0;
+var i18n_1 = require("/frameworks/i18n");
 var funcs_1 = require("/funcs");
 /** Each player has one rank, which is used to determine their prefix, permissions, and which other players they can perform moderation actions on. */
 var Rank = /** @class */ (function () {
     function Rank(name, 
-    /** Used to determine whether a rank outranks another. */ level, description, prefix, shortPrefix, color, autoRankData) {
+    /** Used to determine whether a rank outranks another. */ level, prefix, shortPrefix, color, autoRankData) {
         var _a, _b, _c, _d, _e;
         this.name = name;
         this.level = level;
-        this.description = description;
         this.prefix = prefix;
         this.shortPrefix = shortPrefix;
         this.color = color;
@@ -33,24 +33,27 @@ var Rank = /** @class */ (function () {
         var _a;
         return (_a = Rank.ranks[name]) !== null && _a !== void 0 ? _a : null;
     };
-    Rank.prototype.coloredName = function () {
-        return this.color + this.name + "[]";
+    Rank.prototype.coloredName = function (locale) {
+        return this.color + (0, i18n_1.i18n)("rank.".concat(this.name, ".name"), locale) + "[]";
+    };
+    Rank.prototype.getDescription = function (locale) {
+        return (0, i18n_1.i18n)("rank.".concat(this.name, ".description"), locale);
     };
     Rank.ranks = {};
     Rank.autoRanks = [];
-    Rank.player = new Rank("player", 0, "Ordinary players.", "", "&lk[p]&fr", "");
-    Rank.active = new Rank("active", 1, "Assigned automatically to players who have played for some time.", "[black]<[forest]\uE800[]>[]", "&lk[a]&fr", "[forest]", {
+    Rank.player = new Rank("player", 0, "", "&lk[p]&fr", "");
+    Rank.active = new Rank("active", 1, "[black]<[forest]\uE800[]>[]", "&lk[a]&fr", "[forest]", {
         joins: 50,
         playtime: funcs_1.Duration.hours(24),
         blocksPlaced: 5000,
         timeSinceFirstJoin: funcs_1.Duration.days(7),
     });
-    Rank.trusted = new Rank("trusted", 2, "Trusted players who have gained the trust of a mod or admin.", "[black]<[#E67E22]\uE813[]>[]", "&y[T]&fr", "[#E67E22]");
-    Rank.mod = new Rank("mod", 3, "Moderators who can mute, stop, and kick players.", "[black]<[#6FFC7C]\uE817[]>[]", "&lg[M]&fr", "[#6FFC7C]");
-    Rank.admin = new Rank("admin", 4, "Administrators with the power to ban players.", "[black]<[cyan]\uE82C[]>[]", "&lr[A]&fr", "[cyan]");
-    Rank.manager = new Rank("manager", 10, "Managers have file and console access.", "[black]<[scarlet]\uE88E[]>[]", "&c[E]&fr", "[scarlet]");
-    Rank.pi = new Rank("pi", 11, "3.14159265358979323846264338327950288419716 (manager)", "[black]<[#FF8000]\u03C0[]>[]", "&b[+]&fr", "[blue]"); //i want pi rank
-    Rank.fish = new Rank("fish", 999, "Owner.", "[blue]>|||>[] ", "&b[F]&fr", "[blue]");
+    Rank.trusted = new Rank("trusted", 2, "[black]<[#E67E22]\uE813[]>[]", "&y[T]&fr", "[#E67E22]");
+    Rank.mod = new Rank("mod", 3, "[black]<[#6FFC7C]\uE817[]>[]", "&lg[M]&fr", "[#6FFC7C]");
+    Rank.admin = new Rank("admin", 4, "[black]<[cyan]\uE82C[]>[]", "&lr[A]&fr", "[cyan]");
+    Rank.manager = new Rank("manager", 10, "[black]<[scarlet]\uE88E[]>[]", "&c[E]&fr", "[scarlet]");
+    Rank.pi = new Rank("pi", 11, "[black]<[#FF8000]\u03C0[]>[]", "&b[+]&fr", "[blue]"); //i want pi rank
+    Rank.fish = new Rank("fish", 999, "[blue]>|||>[] ", "&b[F]&fr", "[blue]");
     Rank.search = (0, funcs_1.searchFixed)(Object.values(Rank.ranks), [
         function (r, str) { return r.name == str.toLowerCase(); },
         function (r, str) { return r.name.includes(str.toLowerCase()); },
@@ -64,11 +67,10 @@ Object.freeze(Rank.pi); //anti-trolling
  * Players can have any combination of the role flags.
  */
 var RoleFlag = /** @class */ (function () {
-    function RoleFlag(name, prefix, description, color, assignableByModerators) {
+    function RoleFlag(name, prefix, color, assignableByModerators) {
         if (assignableByModerators === void 0) { assignableByModerators = true; }
         this.name = name;
         this.prefix = prefix;
-        this.description = description;
         this.color = color;
         this.assignableByModerators = assignableByModerators;
         RoleFlag.flags[name] = this;
@@ -77,16 +79,19 @@ var RoleFlag = /** @class */ (function () {
         var _a;
         return (_a = RoleFlag.flags[name]) !== null && _a !== void 0 ? _a : null;
     };
-    RoleFlag.prototype.coloredName = function () {
-        return this.color + this.name + "[]";
+    RoleFlag.prototype.coloredName = function (locale) {
+        return this.color + (0, i18n_1.i18n)("flag.".concat(this.name, ".name"), locale) + "[]";
+    };
+    RoleFlag.prototype.getDescription = function (locale) {
+        return (0, i18n_1.i18n)("flag.".concat(this.name, ".description"), locale);
     };
     RoleFlag.flags = {};
-    RoleFlag.developer = new RoleFlag("developer", "[black]<[#B000FF]\uE80E[]>[]", "Awarded to people who contribute to the server's codebase.", "[#B000FF]", false);
-    RoleFlag.map_analyst = new RoleFlag("map analyst", "[black]<[#C16BFF]\uE852[]>[]", "Map analysts can add and remove maps.", "[#C16BFF]", false);
-    RoleFlag.member = new RoleFlag("member", "[black]<[yellow]\uE809[]>[]", "Awarded to our awesome donors who support the server.", "[pink]", false);
-    RoleFlag.illusionist = new RoleFlag("illusionist", "", "Assigned to to individuals who have earned access to enhanced visual effect features.", "[lightgrey]", true);
-    RoleFlag.map_expert = new RoleFlag("map expert", "[black]<[#5800FF]\uE833[]>[]", "Assigned to the chief map analysts, who oversee map management.", "[#5800FF]", true);
-    RoleFlag.no_effects = new RoleFlag("no_effects", "", "Given to people who have abused the visual effects.", "", true);
+    RoleFlag.developer = new RoleFlag("developer", "[black]<[#B000FF]\uE80E[]>[]", "[#B000FF]", false);
+    RoleFlag.map_analyst = new RoleFlag("map_analyst", "[black]<[#C16BFF]\uE852[]>[]", "[#C16BFF]", false);
+    RoleFlag.member = new RoleFlag("member", "[black]<[yellow]\uE809[]>[]", "[pink]", false);
+    RoleFlag.illusionist = new RoleFlag("illusionist", "", "[lightgrey]", true);
+    RoleFlag.map_expert = new RoleFlag("map_expert", "[black]<[#5800FF]\uE833[]>[]", "[#5800FF]", true);
+    RoleFlag.no_effects = new RoleFlag("no_effects", "", "", true);
     RoleFlag.search = (0, funcs_1.searchFixed)(Object.values(RoleFlag.flags), [
         function (r, str) { return r.name == str.toLowerCase(); },
         function (r, str) { return r.name.includes(str.toLowerCase()); },

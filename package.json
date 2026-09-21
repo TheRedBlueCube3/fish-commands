@@ -11,7 +11,8 @@
 		"lint": "eslint",
 		"lint:fix": "eslint --fix",
 		"dev": "node scripts/dev.js",
-		"test": "tsc -p tsconfig.json && node scripts/remap-imports.js && tsc -p spec && jasmine"
+		"test": "tsc -p tsconfig.json && node scripts/remap-imports.js && tsc -p spec && jasmine",
+		"checkbundles": "node scripts/checkBundles.js"
 	},
 	"keywords": [],
 	"author": "",

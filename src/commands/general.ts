@@ -3,19 +3,20 @@ Copyright © BalaM314, 2026. All Rights Reserved.
 This file contains most in-game chat commands that can be run by untrusted players.
 */
 
-import { Achievement, Achievements } from "/achievements";
+import { Achievement, Achievements, mapNameToDescArgs } from "/achievements";
 import * as api from "/api";
 import { FColor, FishServer, Gamemode, text } from "/config";
 import { command, commandList, fail, formatArg, Perm, PermCategory, Req } from "/frameworks/commands";
 import type { FishCommandData } from "/frameworks/commands/types";
+import { AddedBundle, i18n, keyExists, sendLocalizedMessage } from "/frameworks/i18n";
 import { Menu } from "/frameworks/menus";
-import { capitalizeText, crash, delay, Duration, escapeStringColorsClient, escapeTextDiscord, StringBuilder, StringIO, to2DArray } from "/funcs";
+import { capitalizeText, crash, delay, Duration, escapeStringColorsClient, escapeTextDiscord, StringBuilder, StringIO, tagProcessorPartial, to2DArray } from "/funcs";
 import { FishEvents, fishPlugin, fishState, ipPortPattern, recentWhispers, tileHistory, uuidPattern } from "/globals";
 import { FMap, PartialMapRun } from "/maps";
 import { FishPlayer } from "/players";
 import { Rank, RoleFlag } from "/ranks";
 import { getLanguageFromCache, isLanguageAvailable, Language, languageCache, setPlayerLanguageEntry } from "/translation";
-import { formatTime, formatTimeRelative, getColor, logAction, nearbyEnemyTile, neutralGameover, skipWaves, teleportPlayer, vnwCondition } from "/utils";
+import { formatTime, formatTimeLocalize, formatTimeRelative, formatTimeRelativeLocalize, getColor, logAction, nearbyEnemyTile, neutralGameover, outputSuccess, skipWaves, teleportPlayer, vnwCondition } from "/utils";
 import { VoteManager } from "/votes";
 
 export const commands = commandList({
@@ -23,12 +24,8 @@ export const commands = commandList({
 		args: [],
 		description: 'Prints information about the plugin.',
 		perm: Perm.none,
-		handler({output, copy}){
-			output(
-`[accent][cyan]fish-commands[] is the monolithic plugin used for the Fish servers' features.
-[accent]==========
-[accent]Source code available at: [cyan]https://github.com/Fish-Community/fish-commands/
-[accent]Current plugin version: [cyan]${copy(fishPlugin.version?.slice(0, 8) ?? "[scarlet]null[]")}[]`
+		handler({localizedOutput: outputI18n, copy}){
+			outputI18n("command.about.output", copy(fishPlugin.version?.slice(0, 8) ?? "[scarlet]null[]")
 			);
 		}
 	},
@@ -48,11 +45,11 @@ export const commands = commandList({
 			});
 			return data;
 		},
-		handler({data, outputSuccess}) {
+		handler({data, outputLocalizedSuccess: outputI18nSuccess}) {
 			Vars.state.rules.pvpAutoPause = false;
 			data.unpaused = true;
 			Core.app.post(() => Vars.state.set(GameState.State.playing));
-			outputSuccess(`Unpaused.`);
+			outputI18nSuccess(`command.unpause.success`);
 		}
 	}),
 
@@ -61,14 +58,14 @@ export const commands = commandList({
 		description: 'Teleport to another player.',
 		perm: Perm.play,
 		requirements: [Req.modeNot("pvp")],
-		handler({ args, sender, f, outputSuccess }) {
+		handler({ args, sender, f, localizedFail, outputLocalizedSuccess }) {
 			if(!sender.hasPerm("admin")){
-				if(!sender.unit()?.spawnedByCore) fail(`Can only teleport while in a core unit.`);
-				if(sender.team() !== args.player.team()) fail(`Cannot teleport to players on another team.`);
-				if(sender.unit()?.hasPayload?.()) fail(`Cannot teleport to players while holding a payload.`);
+				if(!sender.unit()?.spawnedByCore) localizedFail(`command.tp.coreunit`);
+				if(sender.team() !== args.player.team()) localizedFail(`command.tp.otherteam`);
+				if(sender.unit()?.hasPayload?.()) localizedFail(`command.tp.haspayload`);
 			}
 			teleportPlayer(sender.player!, args.player.player!);
-			outputSuccess(f`Teleported to ${args.player}`);
+			outputLocalizedSuccess("command.tp.success", args.player.name);
 		}
 	},
 
@@ -77,15 +74,16 @@ export const commands = commandList({
 		description: 'Change your target translation language.',
 		perm: Perm.none,
 		requirements: [],
-		async handler({args, sender, outputSuccess}){
+		async handler({args, sender, localize, outputLocalizedSuccess: localizedSuccess, localizedFail}){
 			args.language ??= (await Menu.menu(
-				"Translation Language",
-				"Select a language. Messages will be translated to this language.",
+				localize(`command.language.menu.title`),
+				localize(`command.language.menu.description`),
 				languageCache.values().toSeq()
 					.sort(Packages.java.util.Comparator({ compare(a:Language, b:Language){
 						return Packages.java.lang.String(a.code).compareTo(Packages.java.lang.String(b));
 					}}))
 					.sort(floatf(l => l.code == "en" ? -2 : l.code == "ru" ? -1 : 0))
+					.map(lang => {const ret: Language ={name: localize(`lang.name.${lang.code.toLowerCase()}`), code: lang.code}; return ret;})
 					.toArray(),
 				sender,
 				{
@@ -96,14 +94,21 @@ export const commands = commandList({
 			)).code;
 
 			if(!(isLanguageAvailable(args.language) || ["off", "none"].includes(args.language.toLowerCase()))){
-				fail(`Invalid language "${args.language}".`);
+				localizedFail("command.language.invalid", args.language);
 			}
 
 			const targetLanguage = getLanguageFromCache(args.language);
+			const localizedTargetLanguageName = localize(`lang.name.${targetLanguage.code.toLowerCase()}`);
 			sender.language = targetLanguage.code;
 			setPlayerLanguageEntry(sender.player!, targetLanguage.code);
-
-			outputSuccess(`Your translation language is now set to ${targetLanguage.name}.`);
+			if(targetLanguage.name == "Off")
+			{
+				localizedSuccess(`command.language.off`);
+			}
+			else
+			{
+				localizedSuccess(`command.language.success`, localizedTargetLanguageName);
+			}
 		}
 	},
 
@@ -113,10 +118,10 @@ export const commands = commandList({
 		perm: Perm.play,
 		requirements: [],
 		data: {lastRanMapStartTime: PartialMapRun.current?.startTime},
-		async handler({sender, outputSuccess, data}){
-			if(!PartialMapRun.current) fail(`This game is already over.`);
+		async handler({sender, outputLocalizedSuccess, data, localizedFail, localize}){
+			if(!PartialMapRun.current) fail(localize(`command.clean.gameover`));
 			if(data.lastRanMapStartTime == PartialMapRun.current.startTime)
-				fail(`This command was already run on this map.`);
+				fail(localize(`command.clean.alreadyrun`));
 			data.lastRanMapStartTime = PartialMapRun.current.startTime;
 			Timer.schedule(
 				() => Call.sound(sender.con(), Sounds.rockBreak, 1, 1, 0),
@@ -133,7 +138,7 @@ export const commands = commandList({
 					if(removed % 500 == 0) await delay(100);
 				}
 			}
-			outputSuccess(`Cleared the map of boulders.`);
+			outputLocalizedSuccess(`command.clean.success`);
 		}
 	}),
 
@@ -143,8 +148,8 @@ export const commands = commandList({
 		perm: Perm.mod.exceptModes({
 			sandbox: Perm.play
 		}, `You do not have permission to die.`),
-		handler({ sender, args: { nodeatheffects } }) {
-			const unit = sender.unit() ?? fail(Math.random() > 0.9 ? "[cyan]omae wa mou shindeiru" : `You are already dead.`);
+		handler({ sender, args: { nodeatheffects }, localize }) {
+			const unit = sender.unit() ?? fail(Math.random() > 0.9 ? localize`command.die.raremessage` : localize`command.die.alreadydead`);
 			if(nodeatheffects) unit.remove();
 			else unit.kill();
 		},
@@ -164,28 +169,28 @@ export const commands = commandList({
 		description: 'Checks the history of a tile.',
 		perm: Perm.none,
 		data: {showUUID: true},
-		handler({args, output, outputSuccess, currentTapMode, handleTaps, sender, data}){
+		handler({args, localizedOutput, outputSuccess, currentTapMode, handleTaps, sender, data, localize, outputLocalizedSuccess}){
 			const changed = args.showUUID !== undefined && args.showUUID != data.showUUID;
 			if(args.showUUID !== undefined){
-				if(!sender.hasPerm("viewUUIDs")) fail(`You do not have permission to show UUIDs.`);
+				if(!sender.hasPerm("viewUUIDs")) fail(localize`command.tilelog.nouuidperms`);
 				data.showUUID = args.showUUID;
 			}
 			if(args.persist && currentTapMode !== "on"){
-				outputSuccess(`Tilelog mode enabled. Click tiles to check their recent history. Run /tilelog to disable.`);
+				outputLocalizedSuccess(`command.tilelog.enabled`);
 				handleTaps("on");
 			} else if(args.persist && changed){
-				outputSuccess(`${data.showUUID ? "Now showing UUIDs." : "No longer showing UUIDs."} Click tiles to check their recent history. Run /tilelog to disable.`);
+				outputSuccess(`${data.showUUID ? localize`command.tilelog.showuuid` : localize`command.tilelog.hideuuid`} ${localize`command.tilelog.clickdis`}`);
 				handleTaps("on");
 			} else if(currentTapMode == "off" || changed){
 				handleTaps("once");
-				output(`Click on a tile to check its recent history...`);
+				localizedOutput(`command.tilelog.click`);
 			} else {
 				handleTaps("off");
-				outputSuccess(`Tilelog disabled.`);
+				outputLocalizedSuccess(`command.tilelog.disabled`);
 			}
 		},
 		tapped({tile, x, y, output, copy, player, sender, admins, data}){
-			const historyData = tileHistory[`${x},${y}`] ?? fail(`There is no recorded history for the selected tile (${tile.x}, ${tile.y}).`);
+			const historyData = tileHistory[`${x},${y}`] ?? fail(i18n(`command.tilelog.nohist`, sender.locale, tile.x, tile.y));
 			const history = StringIO.read(historyData, str => str.readArray(d => ({
 				action: d.readString(2),
 				uuid: d.readString(3)!,
@@ -292,11 +297,11 @@ export const commands = commandList({
 		args: [],
 		description: 'Toggles your afk status.',
 		perm: Perm.none,
-		handler({ sender, outputSuccess }) {
+		handler({ sender, outputLocalizedSuccess }) {
 			sender.manualAfk = !sender.manualAfk;
 			sender.updateName();
-			if(sender.manualAfk) outputSuccess(`You are now marked as AFK.`);
-			else outputSuccess(`You are no longer marked as AFK.`);
+			if(sender.manualAfk) outputLocalizedSuccess(`command.afk.marked`);
+			else outputLocalizedSuccess(`command.afk.unmarked`);
 		},
 	},
 
@@ -304,15 +309,21 @@ export const commands = commandList({
 		args: ['target:player?'],
 		description: `Toggles visibility of your rank and flags.`,
 		perm: Perm.vanish,
-		handler({ sender, args: {target = sender}, outputSuccess, f }){
-			if(sender.stelled()) fail(`Marked players may not hide flags.`);
-			if(sender.muted()) fail(`Muted players may not hide flags.`);
-			if(sender != target && target.hasPerm("blockTrolling")) fail(`Target is insufficiently trollable.`);
-			if(sender != target && !sender.ranksAtLeast("mod")) fail(`You do not have permission to vanish other players.`);
+		handler({ sender, args: {target = sender}, localize, outputLocalizedSuccess }){
+			if(sender.stelled()) fail(localize`command.vanish.stelled`);
+			if(sender.muted()) fail(localize`command.vanish.muted`);
+			if(sender != target && target.hasPerm("blockTrolling")) fail(localize`command.vanish.untrollable`);
+			if(sender != target && !sender.ranksAtLeast("mod")) fail(localize`command.vanish.noperms`);
 			target.showRankPrefix = !target.showRankPrefix;
-			outputSuccess(f`\
-${target == sender ? `Your` : `${target.cleanedName}'s`} rank prefix is now ${target.showRankPrefix ? "visible" : "hidden"}.`
-			);
+			const isVisible = target.showRankPrefix ? localize`command.vanish.visible` : localize`command.vanish.hidden`;
+			if(target == sender)
+			{
+				outputLocalizedSuccess(`command.vanish.ownsuccess`, isVisible);
+			}
+			else
+			{
+				outputLocalizedSuccess(`command.vanish.setsuccess`, target.name, isVisible);
+			}
 		},
 	},
 	
@@ -321,12 +332,12 @@ ${target == sender ? `Your` : `${target.cleanedName}'s`} rank prefix is now ${ta
 		args: [],
 		description: 'Checks id of a tile.',
 		perm: Perm.none,
-		handler({output, handleTaps}){
+		handler({localizedOutput, handleTaps}){
 			handleTaps("once");
-			output(`Click a tile to see its id...`);
+			localizedOutput(`command.tileid.click`);
 		},
-		tapped({output, f, tile, copy}){
-			output(f`ID is ${copy(tile.block().id)}`);
+		tapped({output, f, tile, copy, sender}){
+			output(i18n(`command.tileid.id`, sender.locale, copy(tile.block().id)));
 		}
 	},
 
@@ -340,8 +351,9 @@ ${target == sender ? `Your` : `${target.cleanedName}'s`} rank prefix is now ${ta
 				isHidden: true,
 				handler({ sender, lastUsedSuccessfullySender }) {
 					if(Date.now() - lastUsedSuccessfullySender > Duration.minutes(1))
-						FishPlayer.messageAllWithPerm(server.requiredPerm,
-							`${sender.name}[magenta] has gone to the ${server.name} server. Use [cyan]/${server.name} [magenta]to join them!`
+						FishPlayer.locMessageAllWithPerm(server.requiredPerm,
+							// `${sender.name}[magenta] has gone to the ${server.name} server. Use [cyan]/${server.name} [magenta]to join them!`
+							`command.server.hasswitched`, sender.name, server.name
 						);
 					Call.connect(sender.con(), server.ip, server.port);
 				},
@@ -353,15 +365,17 @@ ${target == sender ? `Your` : `${target.cleanedName}'s`} rank prefix is now ${ta
 		args: ["server:string", "target:playerOn?"],
 		description: "Switches to another server.",
 		perm: Perm.play,
-		handler({args, sender, f, lastUsedSuccessfullySender}){
+		handler({args, sender, f, lastUsedSuccessfullySender, localize}){
 			if(args.target != null && args.target != sender && !sender.canModerate(args.target, true, "admin", true))
-				fail(f`You do not have permission to switch player ${args.target}.`);
+				fail(localize(`command.switch.noperms`, args.target.name));
 			const target = args.target ?? sender;
 			if(ipPortPattern.test(args.server) && sender.hasPerm("admin")){
 				//direct connect
-				Call.connect(target.con(), ...args.server.split(":"));
+				const ipPort = args.server.split(":");
+				Call.connect(target.con(), ipPort[0], ipPort[1]);
 			} else {
-				const unknownServerMessage = `Unknown server ${args.server}. Valid options: ${FishServer.all.filter(s => !s.requiredPerm || sender.hasPerm(s.requiredPerm)).map(s => s.name).join(", ")}`;
+				// const unknownServerMessage = `Unknown server ${args.server}. Valid options: ${FishServer.all.filter(s => !s.requiredPerm || sender.hasPerm(s.requiredPerm)).map(s => s.name).join(", ")}`;
+				const unknownServerMessage = localize(`command.switch.unknownserver`, args.server, FishServer.all.filter(s => !s.requiredPerm || sender.hasPerm(s.requiredPerm)).map(s => s.name).join(", "));
 				const server = FishServer.byName(args.server)
 					?? fail(unknownServerMessage);
 
@@ -370,8 +384,8 @@ ${target == sender ? `Your` : `${target.cleanedName}'s`} rank prefix is now ${ta
 					fail(unknownServerMessage);
 
 				if(target == sender && Date.now() - lastUsedSuccessfullySender > Duration.minutes(1))
-					FishPlayer.messageAllWithPerm(server.requiredPerm,
-						`${sender.name}[magenta] has gone to the ${server.name} server. Use [cyan]/${server.name} [magenta]to join them!`
+					FishPlayer.locMessageAllWithPerm(server.requiredPerm,
+						`command.server.hasswitched`, sender.name, server.name
 					);
 
 				Call.connect(target.con(), server.ip, server.port);
@@ -383,18 +397,18 @@ ${target == sender ? `Your` : `${target.cleanedName}'s`} rank prefix is now ${ta
 		args: ['message:string'],
 		description: `Sends a message to staff only.`,
 		perm: Perm.chat,
-		async handler({ sender, args, outputSuccess, outputFail, lastUsedSender }){
+		async handler({ sender, args, outputLocalizedSuccess, outputLocalizedFail, lastUsedSender, localize }){
 			if(!sender.hasPerm("mod")){
-				if(Date.now() - lastUsedSender < 4000) fail(`This command was used recently and is on cooldown. [orange]Misuse of this command may result in a mute.`);
+				if(Date.now() - lastUsedSender < 4000) fail(localize`command.s.alreadyused`);
 			}
 			FishPlayer.messageStaff(sender.prefixedName, args.message, sender.hasPerm("mod"));
 			try {
 				await api.sendStaffMessage(args.message, sender.name, sender.hasPerm("mod"));
 				if(!sender.hasPerm("mod")){
-					outputSuccess(`Message sent to [orange]all online staff.`);
+					outputLocalizedSuccess(`command.s.success`);
 				}
 			} catch {
-				outputFail(`Failed to send message to other servers.`);
+				outputLocalizedFail(`command.s.failed`);
 			}
 		},
 	},
@@ -412,14 +426,14 @@ ${target == sender ? `Your` : `${target.cleanedName}'s`} rank prefix is now ${ta
 		description: `Watch/unwatch a player.`,
 		perm: Perm.none,
 		data: new Set<string>,
-		async handler({ args, data, sender, outputSuccess, outputFail }) {
-			if(!sender.con().mobile) await Menu.confirmDangerous(sender, "This command only works on mobile and may cause severe flashing lights on desktop.");
+		async handler({ args, data, sender, outputLocalizedSuccess, outputLocalizedFail, localize }) {
+			if(!sender.con().mobile) await Menu.confirmDangerous(sender, localize`command.watch.warning`);
 			if(data.has(sender.uuid)){
-				outputSuccess(`No longer watching a player.`);
+				outputLocalizedSuccess(`command.watch.success`);
 				data.delete(sender.uuid);
 			} else if(args.player){
 				data.add(sender.uuid);
-				const senderUnit = sender.unit() ?? fail(`You do not have a unit.`);
+				const senderUnit = sender.unit() ?? fail(localize`command.watch.nounit`);
 				const stayX = senderUnit.x;
 				const stayY = senderUnit.y;
 				const target = args.player.player!;
@@ -435,7 +449,7 @@ ${target == sender ? `Your` : `${target.cleanedName}'s`} rank prefix is now ${ta
 					}
 				})();
 			} else {
-				outputFail(`No player to unwatch.`);
+				outputLocalizedFail(`command.watch.warning`);
 			}
 		},
 	}),
@@ -461,21 +475,21 @@ ${target == sender ? `Your` : `${target.cleanedName}'s`} rank prefix is now ${ta
 			description: `Toggles spectator mode in PVP games.`,
 			perm: Perm.play,
 			requirements: [Req.gameRunning],
-			handler({sender, args: {target = sender}, outputSuccess, f}){
-				if(!Gamemode.pvp() && !sender.hasPerm("mod")) fail(`You do not have permission to spectate on a non-pvp server.`);
-				if(target !== sender && target.hasPerm("blockTrolling")) fail(`Target player is insufficiently trollable.`);
-				if(target !== sender && !sender.ranksAtLeast("admin")) fail(`You do not have permission to force other players to spectate.`);
+			handler({sender, args: {target = sender}, outputSuccess, f, localize}){
+				if(!Gamemode.pvp() && !sender.hasPerm("mod")) fail(localize`command.spectate.noperms`);
+				if(target !== sender && target.hasPerm("blockTrolling")) fail(localize`command.spectate.untrollable`);
+				if(target !== sender && !sender.ranksAtLeast("admin")) fail(localize`command.spectate.nopermsspec`);
 				if(spectators.has(target)){
 					resume(target);
 					outputSuccess(target == sender
-						? f`Rejoining game as team ${target.team()}.`
-						: f`Forced ${target} out of spectator mode.`
+						? localize(`command.spectate.rejoining`, `${target.team().coloredName()}`)
+						: localize(`command.spectate.kickedout`, `${target.name}`)
 					);
 				} else {
 					spectate(target);
 					outputSuccess(target == sender
-						? f`Now spectating. Run /spectate again to resume gameplay.`
-						: f`Forced ${target} into spectator mode.`)
+						? localize`command.spectate.spectating`
+						: localize(`command.spectate.kickedin`, target.name))
 					;
 				}
 			}
@@ -485,7 +499,7 @@ ${target == sender ? `Your` : `${target.cleanedName}'s`} rank prefix is now ${ta
 		args: ['name:string?'],
 		description: 'Displays a list of all commands under the specified category, or, displays information about one command.',
 		perm: Perm.none,
-		handler({ args, output, sender, allCommands }) {
+		handler({ args, output, sender, allCommands, localize }) {
 			const formatCommand = (name: string, color: string) =>
 				new StringBuilder()
 					.add(`${color}/${name}`)
@@ -494,7 +508,7 @@ ${target == sender ? `Your` : `${target.cleanedName}'s`} rank prefix is now ${ta
 			const formatList = (commandList: string[], color: string) => commandList.map((c) => formatCommand(c, color)).join('\n');
 
 			if(args.name && ["selectors", "select", "selector", "@help", "@?"].includes(args.name)){
-				output(text.selectorsHelp);
+				output(localize`selectors`);
 			} else if (args.name && isNaN(parseInt(args.name)) && !['mod', 'admin', 'member', 'manager', 'trusted'].includes(args.name)) {
 				//name is not a number or a category, therefore it is probably a command name
 				if (args.name in allCommands && (!allCommands[args.name].isHidden || allCommands[args.name].perm.check(sender))) {
@@ -536,12 +550,14 @@ ${target == sender ? `Your` : `${target.cleanedName}'s`} rank prefix is now ${ta
 		args: ['player:playerOn', 'message:string'],
 		description: 'Send a message to only one player.',
 		perm: Perm.chat,
-		handler({ args, sender, output, f }) {
+		handler({ args, sender, localizedOutput, f, localize }) {
 			recentWhispers[args.player.uuid] = sender.uuid;
 			args.player.recentPlayers.clear();
 			args.player.recentPlayers.add(sender);
-			args.player.sendMessage(`${sender.prefixedName}[lightgray] whispered:[#BBBBBB] ${args.message}`);
-			output(f`[lightgray]Whispered to ${args.player}[lightgray]:[#BBBBBB] ${args.message}`);
+			// args.player.sendMessage(`${sender.prefixedName}[lightgray] whispered:[#BBBBBB] ${args.message}`);
+			args.player.sendMessage(i18n(`command.msg.incoming`, args.player.locale, sender.prefixedName, args.message));
+			// output(f`[lightgray]Whispered to ${args.player}[lightgray]:[#BBBBBB] ${args.message}`);
+			localizedOutput(`command.msg.outgoing`, args.player.prefixedName, args.message);
 		},
 	},
 
@@ -549,12 +565,12 @@ ${target == sender ? `Your` : `${target.cleanedName}'s`} rank prefix is now ${ta
 		args: ['message:string'],
 		description: 'Reply to the most recent message.',
 		perm: Perm.chat,
-		handler({ args, sender, output, f }) {
-			const recipient = FishPlayer.getById(recentWhispers[sender.uuid] ?? fail(`It doesn't look like someone has messaged you recently. Try whispering to them with [white]"/msg <player> <message>"`));
-			if(!(recipient?.connected())) fail(`The person who last messaged you doesn't seem to exist anymore. Try whispering to someone with [white]"/msg <player> <message>"`);
+		handler({ args, sender, output, f, localize }) {
+			const recipient = FishPlayer.getById(recentWhispers[sender.uuid] ?? fail(localize`command.r.nomessages`));
+			if(!(recipient?.connected())) fail(localize`command.r.unconnected`);
 			recentWhispers[recentWhispers[sender.uuid]] = sender.uuid;
-			recipient.sendMessage(`${sender.name}[lightgray] whispered:[#BBBBBB] ${args.message}`);
-			output(f`[lightgray]Whispered to ${recipient}[lightgray]:[#BBBBBB] ${args.message}`);
+			recipient.sendMessage(i18n(`command.msg.incoming`, recipient.locale, sender.prefixedName, args.message));
+			output(localize(`command.msg.outgoing`, sender.prefixedName, args.message));
 		},
 	},
 
@@ -562,24 +578,14 @@ ${target == sender ? `Your` : `${target.cleanedName}'s`} rank prefix is now ${ta
 		args: ['type:string?', 'color:string?'],
 		description: 'Use command to see options and toggle trail on/off.',
 		perm: Perm.none,
-		handler({ args, sender, output, outputFail, outputSuccess }) {
+		handler({ args, sender, output, outputFail, outputSuccess, localize }) {
 			//overload 1: type not specified
 			if(!args.type){
 				if(sender.trail != null){
 					sender.trail = null;
-					outputSuccess(`Trail turned off.`);
+					outputSuccess(localize`command.trail.off`);
 				} else {
-					output(`\
-Available types:[yellow]
-1 - fluxVapor (flowing smoke, long lasting)
-2 - overclocked (diamonds)
-3 - overdriven (squares)
-4 - shieldBreak (smol)
-5 - upgradeCoreBloom (square, long lasting, only orange)
-6 - electrified (tiny spiratic diamonds, but only green)
-7 - unitDust (same as above but round, and can change colors)
-[white]Usage: [orange]/trail [lightgrey]<type> [color/#hex/r,g,b]`
-					);
+					output(localize`command.trail.types`);
 				}
 				return;
 			}
@@ -597,8 +603,8 @@ Available types:[yellow]
 
 			const selectedType = trailTypes[args.type as keyof typeof trailTypes] as string | undefined;
 			if(!selectedType){
-				if(Object.values(trailTypes).includes(args.type)) fail(`Please use the numeric id to refer to a trail type.`);
-				else fail(`"${args.type}" is not an available type.`);
+				if(Object.values(trailTypes).includes(args.type)) fail(localize`command.trail.usenumeric`);
+				else fail(localize(`command.trail.unavailable`, args.type));
 			}
 
 			const color = args.color ? getColor(args.color) : Color.white;
@@ -608,11 +614,7 @@ Available types:[yellow]
 					color,
 				};
 			} else {
-				outputFail(
-`[scarlet]Sorry, "${args.color}" is not a valid color.
-[yellow]Color can be in the following formats:
-[pink]pink [white]| [gray]#696969 [white]| 255,0,0.`
-				);
+				outputFail(localize(`command.trail.notcolor`, args.color));
 			}
 		},
 	},
@@ -662,17 +664,17 @@ Available types:[yellow]
 			Req.gameRunning, Req.modeNot("pvp"),
 			Req.unitExists(`You cannot spawn ohnos while dead.`)
 		],
-		handler({sender, data:Ohnos}){
-			if(!Ohnos.enabled) fail(`Ohnos have been temporarily disabled.`);
+		handler({sender, data:Ohnos, localize}){
+			if(!Ohnos.enabled) fail(localize`command.ohno.disabled`);
 			Ohnos.updateLength();
 			if(
 				Ohnos.ohnos.length >= (Groups.player.size() + 1) ||
 				sender.team().data().countType(UnitTypes.alpha) >= Units.getCap(sender.team())
-			) fail(`Sorry, the max number of ohno units has been reached.`);
-			if(nearbyEnemyTile((sender.unit()!), 6) != null) fail(`Too close to an enemy building!`);
+			) fail(localize`command.ohno.max`);
+			if(nearbyEnemyTile((sender.unit()!), 6) != null) fail(localize`command.ohno.enemy`);
 			if(!Vars.fogControl.isDiscovered(sender.team(), sender.player.x, sender.player.y))
-				fail(`Cannot spawn ohnos in fog.`);
-			if(!UnitTypes.alpha.supportsEnv(Vars.state.rules.env)) fail(`Ohnos cannot survive in this map.`);
+				fail(localize`command.ohno.fog`);
+			if(!UnitTypes.alpha.supportsEnv(Vars.state.rules.env)) fail(localize`command.ohno.alpha`);
 	
 			Ohnos.makeOhno(sender.team(), sender.player.x, sender.player.y);
 		},
@@ -682,15 +684,15 @@ Available types:[yellow]
 		args: [],
 		description: 'Displays information about all ranks.',
 		perm: Perm.none,
-		handler({ output, copy }){
+		handler({ output, copy, sender, localize }){
 			output(
-				`List of ranks:\n` +
+				localize`command.ranks.ranklist` +
 					Object.values(Rank.ranks)
-						.map((rank) => `${copy(rank.prefix)} ${rank.color}${capitalizeText(rank.name)}[]: ${rank.color}${rank.description}[]\n`)
+						.map((rank) => `${copy(rank.prefix)} ${rank.coloredName(sender.locale)}: ${rank.color}${rank.getDescription(sender.locale)}[]\n`)
 						.join("") +
-				`List of flags:\n` +
+				localize`command.ranks.flaglist` +
 				Object.values(RoleFlag.flags)
-					.map((flag) => `${copy(flag.prefix)} ${flag.color}${capitalizeText(flag.name)}[]: ${flag.color}${flag.description}[]\n`)
+					.map((flag) => `${copy(flag.prefix)} ${flag.coloredName(sender.locale)}: ${flag.color}${flag.getDescription(sender.locale)}[]\n`)
 					.join("")
 			);
 		},
@@ -700,24 +702,24 @@ Available types:[yellow]
 		args: ['player:playerOn?'],
 		description: 'Displays the server rules.',
 		perm: Perm.none,
-		handler({args, sender, output, outputSuccess, f, lastUsedSuccessfullySender}){
+		handler({args, sender, output, outputSuccess, f, lastUsedSuccessfullySender, localize}){
 			const target = args.player ?? sender;
 			if(target !== sender){
-				if(!sender.hasPerm("warn")) fail(`You do not have permission to show rules to other players.`);
+				if(!sender.hasPerm("warn")) fail(localize`command.rules.noperms`);
 				if(!sender.canModerate(target)) Req.cooldown(Duration.minutes(10))({lastUsedSuccessfullySender});
-				if(target.hasPerm("blockTrolling")) fail(f`Player ${args.player!} is insufficiently trollable.`);
+				if(target.hasPerm("blockTrolling")) fail(localize(`command.rules.untrollable`, target.name));
 			}
 			void target.showRules(["No"]).then((option) => {
 				if(option == "No"){
-					target.kick("You must agree to the rules to play on this server. Rejoin to agree to the rules.", 1);
-					if(target !== sender) outputSuccess('Player rejected the rules and was kicked.');
+					target.kick(i18n(`command.rules.kicked`, target.locale), 1);
+					if(target !== sender) outputSuccess(localize`command.rules.plkicked`);
 				} else if(option == null){
-					if(target !== sender) output('Player closed the menu.');
+					if(target !== sender) output(localize`command.rules.menuclosed`);
 				} else {
-					if(target !== sender) outputSuccess('Player acknowledged the rules.');
+					if(target !== sender) outputSuccess(localize`command.rules.acknowledged`);
 				}
 			});
-			if(target !== sender) outputSuccess(f`Reminded ${target} of the rules.`);
+			if(target !== sender) outputSuccess(localize(`command.rules.reminded`, target.name));
 		},
 	},
 
@@ -729,26 +731,19 @@ Available types:[yellow]
 			Req.mode("attack"),
 			args.player ? Req.cooldown(20_000) : Req.cooldownGlobal(10_000)
 		],
-		handler({args, sender, outputSuccess, f}){
+		handler({args, sender, outputSuccess, f, localize}){
 			if(args.player){
-				if(!sender.hasPerm("trusted")) fail(`You do not have permission to show popups to other players, please run /void with no arguments to send a chat message to everyone.`);
+				if(!sender.hasPerm("trusted")) fail(localize`command.void.noperms`);
 				if(args.player !== sender && args.player.hasPerm("blockTrolling")) fail(`Target player is insufficiently trollable.`);
-				void Menu.menu("\uf83f [scarlet]WARNING[] \uf83f",
-`[white]Don't break the Power Void (\uf83f), it's a trap!
-Power voids disable anything they are connected to.
-If you break it, [scarlet]you will get attacked[] by enemy units.
-Please stop attacking and [lime]build defenses[] first!`,
-					["I understand"], args.player,
+				void Menu.menu(i18n(`command.void.menu.title`, args.player.locale),
+					i18n(`command.void.menu.description`, args.player.locale),
+					[i18n(`command.void.menu.button`, args.player.locale)], args.player,
 					{ onCancel: 'null' },
-				).then(() => outputSuccess(f`Player ${args.player!} acknowledged the warning.`));
+				).then(() => outputSuccess(localize(`command.void.acknowledged`, args.player!.name)));
 				logAction("showed void warning", sender, args.player);
-				outputSuccess(f`Warned ${args.player} about power voids with a popup message.`);
+				outputSuccess(localize(`command.void.success`, args.player.name));
 			} else {
-				Call.sendMessage(
-`[white]Don't break the Power Void (\uf83f), it's a trap!
-Power voids disable anything they are connected to. If you break it, [scarlet]you will get attacked[] by enemy units.
-Please stop attacking and [lime]build defenses[] first!`
-				);
+				sendLocalizedMessage(`command.void.description`);
 			}
 		},
 	},
@@ -757,14 +752,14 @@ Please stop attacking and [lime]build defenses[] first!`
 		args: ['team:team', 'reason:string?'],
 		description: 'Changes your team.',
 		perm: Perm.changeTeam,
-		handler({sender, args: {team, reason}, outputSuccess, f}){
+		handler({sender, args: {team, reason}, outputSuccess, f, localize}){
 			if(Gamemode.sandbox() && fishState.peacefulMode && !sender.hasPerm("admin"))
-				fail(`You do not have permission to change teams because peaceful mode is on.`);
+				fail(localize`command.team.nopeace`);
 			if(Gamemode.sandbox() && team === Vars.state.rules.waveTeam && !sender.hasPerm("admin"))
-				fail(`You do not have permission to change to the wave team on sandbox.`);
-			if(!(Gamemode.sandbox() || Gamemode.testsrv()) && !sender.hasPerm("mod") && !reason) fail(`Please specify a reason for changing teams.`);
+				fail(localize`command.team.nowave`);
+			if(!(Gamemode.sandbox() || Gamemode.testsrv()) && !sender.hasPerm("mod") && !reason) fail(localize`command.team.noreason`);
 			if(!sender.hasPerm("changeTeamExternal")){
-				if(team.data().cores.size <= 0) fail(`You do not have permission to change to a team with no cores.`);
+				if(team.data().cores.size <= 0) fail(localize`command.team.nocores`);
 				if(!sender.player.dead() && !sender.unit()?.spawnedByCore)
 					sender.forceRespawn();
 			}
@@ -882,10 +877,10 @@ Please stop attacking and [lime]build defenses[] first!`
 		init: () => ({
 			manager: new VoteManager(Duration.minutes(1.5), Gamemode.hexed() ? ["fractionOfVoters", 1] : undefined) //Require unanimity in Hexed, as it is often 1 v everyone
 				.on("success", () => neutralGameover())
-				.on("vote passed", () => Call.sendMessage(`RTV: [green]Vote has passed, changing map.`))
-				.on("vote failed", () => Call.sendMessage(`RTV: [red]Vote failed.`))
-				.on("player vote change", (t, player, oldVote, newVote) => Call.sendMessage(`RTV: ${player.name}[white] ${oldVote == newVote ? "still " : ""}wants to change the map. [green]${t.currentVotes()}[white] votes, [green]${t.requiredVotes()}[white] required.`))
-				.on("player vote removed", (t, player) => Call.sendMessage(`RTV: ${player.name}[white] has left the game. [green]${t.currentVotes()}[white] votes, [green]${t.requiredVotes()}[white] required.`))
+				.on("vote passed", () => sendLocalizedMessage("command.rtv.passed"))
+				.on("vote failed", () => sendLocalizedMessage("command.rtv.failed"))
+				.on("player vote change", (t, player, oldVote, newVote) => Groups.player.each(p=>p.sendMessage(i18n("command.rtv.voted", p.locale, player.name, oldVote == newVote ? i18n("command.rtv.oldvote",p.locale) : "", t.currentVotes(), t.requiredVotes()))))
+				.on("player vote removed", (t, player) => Groups.player.each(p=>p.sendMessage(i18n("command.rtv.removed", p.locale, player.name, t.currentVotes(), t.requiredVotes()))))
 		}),
 		requirements: [Req.cooldown(10000), Req.gameRunning],
 		handler({sender, data:{manager}}){
@@ -985,13 +980,9 @@ ${Vars.maps.customMaps().toArray().map(map =>
 		}
 
 		function showVotes(){
-			Call.sendMessage(`\
-[green]Current votes:
-------------------------------
-${getMapData().map(({key:map, value:votes}) =>
-`[cyan]${map.name()}[yellow]: ${votes}`
-).toString("\n")}`
-			);
+			sendLocalizedMessage("command.nextmap.curvotes", getMapData().map(({key:map, value:votes}) =>
+			`[cyan]${map.name()}[yellow]: ${votes}`
+			).toString("\n"));
 		}
 
 		function startVote(){
@@ -1005,7 +996,7 @@ ${getMapData().map(({key:map, value:votes}) =>
 
 			if(votes.size + 2 <= lastVoteCount && (Date.now() - lastVoteTime) < Duration.minutes(10)){
 				//If the number of votes is 2 less than the previous number of votes for a vote in the past 10 minutes, abor
-				Call.sendMessage("[cyan]Next Map Vote: [scarlet]Vote aborted because a previous vote had significantly higher turnout");
+				sendLocalizedMessage("command.nextmap.toolow");
 				resetVotes();
 				return;
 			} else {
@@ -1020,16 +1011,13 @@ ${getMapData().map(({key:map, value:votes}) =>
 
 			if(highestVotedMaps.size > 1){
 				winner = highestVotedMaps.random()!.key;
-				Call.sendMessage(
-`[green]There was a tie between the following maps:
-${highestVotedMaps.map(({key:map, value:votes}) =>
-`[cyan]${map.name()}[yellow]: ${votes}`
-).toString("\n")}
-[green]Picking random winner: [yellow]${winner.name()}`
+				sendLocalizedMessage("command.nextmap.tie", highestVotedMaps.map(({key:map, value:votes}) =>
+				`[cyan]${map.name()}[yellow]: ${votes}`
+				).toString("\n"), winner.name(),
 				);
 			} else {
 				winner = highestVotedMaps.get(0).key;
-				Call.sendMessage(`[green]Map voting complete! The next map will be [yellow]${winner.name()} [green]with [yellow]${highestVoteCount}[green] votes.`);
+				sendLocalizedMessage(`command.nextmap.success`, winner.name(), highestVoteCount);
 			}
 			Vars.maps.setNextMapOverride(winner == random ? null : (winner as MMap));
 			resetVotes();
@@ -1044,19 +1032,19 @@ ${highestVotedMaps.map(({key:map, value:votes}) =>
 			perm: Perm.play,
 			data: {votes, voteEndTime: () => voteEndTime, resetVotes, endVote},
 			requirements: [Req.cooldown(10_000)],
-			handler({args, sender}){
+			handler({args, sender, outputLocalizedFail: localizedFail}){
 				const map = args.map === "random" ? random : args.map;
-				if(Gamemode.testsrv()) fail(`Please use /forcenextmap instead.`);
-				if(votes.get(sender)) fail(`You have already voted.`);
+				if(Gamemode.testsrv()) localizedFail(`command.nextmap.useforce`);
+				if(votes.get(sender)) localizedFail(`command.nextmap.alreadyvote`);
 				
 				if(voteEndTime == -1){
-					if((Date.now() - lastVoteTime) < Duration.minutes(1)) fail(`Please wait 1 minute before starting a new map vote.`);
+					if((Date.now() - lastVoteTime) < Duration.minutes(1)) localizedFail(`command.nextmap.toofast`);
 					startVote();
 					votes.set(sender, map);
-					Call.sendMessage(`[cyan]Next Map Vote: ${sender.name}[cyan] started a map vote, and voted for [yellow]${map.name()}[cyan]. Use [white]/nextmap ${map.plainName()}[] to add your vote, or run [white]/maps[] to see other available maps.`);
+					sendLocalizedMessage(`command.nextmap.started`, sender.name, map.name(), map.plainName());
 				} else {
 					votes.set(sender, map);
-					Call.sendMessage(`[cyan]Next Map Vote: ${sender.name}[cyan] voted for [yellow]${map.name()}[cyan]. Time left: [scarlet]${formatTimeRelative(voteEndTime, true)}`);
+					Groups.player.each(p => p.sendMessage(i18n("command.nextmap.voted", p.locale, sender.name, map.name(), formatTimeRelativeLocalize(voteEndTime, p.locale, true))));
 					showVotes();
 				}
 			}
@@ -1249,30 +1237,45 @@ Win rate: ${stats.gamesWon / stats.gamesFinished}`
 		args: ["name:string?", "verbose:boolean?"],
 		description: "Displays information on a specific achievement.",
 		perm: Perm.none,
-		async handler({args: {name = "", verbose = false}, sender, f, output, copy}){
+		async handler({args: {name = "", verbose = false}, sender, f, localize, output, copy}){
 			name = Strings.stripColors(name.toLowerCase());
 			
 			const matching = Achievement.all.filter(a => Strings.stripColors(a.name).toLowerCase().includes(name));
 			if(matching.length == 0)
-				fail(f`No achievements found with name ${name}. To view all achievements, run [accent]/achievements[].`);
+				fail(localize(`command.achievement.notfound`, name));
 			const achievement = matching.length > 2 ?
-				await Menu.pagedList(sender, "Achievement", "Select an achievement to view", matching, {
+				await Menu.pagedList(sender, localize`command.achievement.menu.title`, localize`command.achievement.menu.description`, matching, {
 					onCancel: "reject",
 					columns: 2,
 					optionStringifier: a => `${a.icon}[] ${a.name}`
 				})
 			: matching[0];
 			
-			output(FColor.achievement`\
-Achievement ${achievement.icon} ${copy(achievement.name)}
-[white]--------------[]
-${copy(achievement.description + (achievement.extendedDescription ? ("\n" + `[gray]${achievement.extendedDescription}`) : ""))}
-Allowed modes: ${achievement.modesText}
-Unlocked: ${f.boolGood(achievement.has(sender))}
-${verbose ? `[gray]ID: (${achievement.nid})${achievement.sid}\n` : ""}\
-${verbose ? `[gray]Notifies: ${achievement.notify}\n` : ""}\
-${achievement.hidden ? "This achievement is secret." : ""}\
-`);
+			// output(FColor.achievement`\
+// Achievement ${achievement.icon} ${copy(achievement.name)}
+// [white]--------------[]
+// ${copy(achievement.description + (achievement.extendedDescription ? ("\n" + `[gray]${achievement.extendedDescription}`) : ""))}
+// Allowed modes: ${achievement.modesText}
+// Unlocked: ${f.boolGood(achievement.has(sender))}
+// ${verbose ? `[gray]ID: (${achievement.nid})${achievement.sid}\n` : ""}\
+// ${verbose ? `[gray]Notifies: ${achievement.notify}\n` : ""}\
+// ${achievement.hidden ? "This achievement is secret." : ""}\
+// `);
+
+			output(FColor.achievement(localize("command.achievement.output",
+				achievement.icon, 
+				copy(localize(`achievement.${achievement.sid}.name`)), 
+				copy(localize(`achievement.${achievement.sid}.description`, 
+					...mapNameToDescArgs(achievement.sid, sender.locale)) + 
+					(keyExists(`achievement.${achievement.sid}.note`)
+						? ("\n" + `[gray]${localize(`achievement.${achievement.sid}.note`)}`)
+						: "")), 
+				achievement.modesText, 
+				f.boolGoodLocalize(achievement.has(sender), sender.locale), 
+				verbose ? localize("command.achievement.id", 
+					achievement.nid, 
+					achievement.sid) : "", 
+				verbose ? localize("command.achievement.notifies", achievement.notify) : "", achievement.hidden ? localize("command.achievement.hidden") : "")));
 			//TODO "x% of players have this achievement" tracking, requires backend aggregation endpoint
 		}
 	},
@@ -1339,34 +1342,34 @@ ${a.hidden ? "This achievement is secret." : ""}\
 		args: ["duration:time?"],
 		description: "Disables confirm popups for the specified duration.",
 		perm: Perm.none,
-		handler({ args: {duration}, sender, output, outputSuccess }){
+		handler({ args: {duration}, sender, output, outputSuccess, localize}){
 			if(Date.now() < sender.skipConfirm){
 				duration ??= 0;
 			} else {
 				duration ??= Duration.minutes(2);
 			}
 			if(duration > Duration.hours(8))
-				fail(`Maximum duration is 8 hours.`);
+				fail(localize`command.skipconfirm.maxduration`);
 			sender.skipConfirm = Date.now() + duration;
-			if(Date.now() < sender.skipConfirm) outputSuccess(`Disabled confirm popups for ${formatTime(duration)}.`);
+			if(Date.now() < sender.skipConfirm) outputSuccess(localize(`command.skipconfirm.success`, formatTimeLocalize(duration, sender.locale)));
 			else outputSuccess(`Re-enabled confirm popups.`);
-			if(duration > Duration.hours(1)) output(`Warning: this does sync between servers, and does not persist after a server restart.`);
+			if(duration > Duration.hours(1)) output(localize`command.skipconfirm.warning`);
 		}
 	},
 	copy: {
 		args: [],
 		description: "Copies relevant text from the previous command to your clipboard.",
 		perm: Perm.none,
-		async handler({ sender, outputSuccess }){
-			if(!sender.copyOptions || sender.copyOptions.length == 0) fail(`There is nothing to copy.`);
+		async handler({ sender, outputSuccess, localize }){
+			if(!sender.copyOptions || sender.copyOptions.length == 0) fail(localize`command.copy.nothing`);
 			const response = sender.copyOptions.length == 1 ? sender.copyOptions[0] :
 				await Menu.pagedList(
-					sender, "Copy", "Select a text to copy it",
+					sender, localize`command.copy.menu.title`, localize`command.copy.menu.description`,
 					sender.copyOptions,
 					{ optionStringifier: escapeStringColorsClient, columns: 1 }
 				);
 			Call.copyToClipboard(sender.con(), response);
-			outputSuccess("Copied.");
+			outputSuccess(localize`command.copy.success`);
 		}
 	},
 	copyTo: {

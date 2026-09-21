@@ -4,12 +4,27 @@ This file contains the code for the achievements system.
 */
 
 import { FColor, Gamemode, GamemodeName, GamemodeNames } from "/config";
+import { i18n, sendLocalizedMessage } from "/frameworks/i18n";
 import { FishEvents } from "/globals";
 import { FishPlayer } from "/players";
+import { Rank } from "/ranks";
+import { Achievements } from "/achievements";
+
+type PossibleAchievement = keyof typeof Achievements
+// keys are sids
+export function mapNameToDescArgs(name: PossibleAchievement, locale: string): string[]
+{
+	const possibleDescArgs: Record<string, string[]> = {
+		"verified": [Rank.active.coloredName(locale)],
+		"drown_mace_in_cryo": [Blocks.cryofluid.emoji()],
+	};
+
+	return possibleDescArgs[name] ?? [];
+}
 
 export class Achievement {
 	nid: number;
-	sid!: string;
+	sid!: PossibleAchievement;
 
 	icon: string;
 	description: string;
@@ -83,11 +98,15 @@ export class Achievement {
 		}
 	}
 
-	message():string {
-		return FColor.achievement`Achievement granted!\n[accent]${this.name}[white]: ${this.description}`;
-	}
-	messageToEveryone(player:FishPlayer):string {
-		return FColor.achievement`Player ${player.prefixedName} has completed the achievement "${this.name}".`;
+	message(locale: string):string {
+		return FColor.achievement(
+			i18n(
+				"achievements.granted",
+				locale,
+				i18n(`achievement.${this.sid}.name`, locale),
+				i18n(`achievement.${this.sid}.description`, locale, ...mapNameToDescArgs(this.sid, locale)),
+			),
+		);
 	}
 	allowedInMode(){
 		return this.allowedModes.includes(Gamemode.name());
@@ -96,7 +115,7 @@ export class Achievement {
 	public grantToAllOnline(team?: Team){
 		FishPlayer.forEachPlayer(p => {
 			if(!this.has(p) && (!team || p.team() == team)){
-				if(this.notify != "nobody") p.sendMessage(this.message());
+				if(this.notify != "nobody") p.sendMessage(this.message(p.locale));
 				this.setObtained(p);
 			}
 		});
@@ -105,8 +124,11 @@ export class Achievement {
 	public grantTo(player:FishPlayer, allowRepeatMessage = false){
 		const has = this.has(player);
 		if(!has || allowRepeatMessage){
-			if(this.notify == "everyone") Call.sendMessage(this.messageToEveryone(player));
-			else if(this.notify == "player") player.sendMessage(this.message());
+			if(this.notify == "everyone")
+			{
+				Groups.player.each((p)=>p.sendMessage(FColor.achievement(i18n("achievements.othgranted", p.locale, player.prefixedName, i18n(`achievement.${this.sid}.name`, p.locale)))));
+			}
+			else if(this.notify == "player") player.sendMessage(this.message(player.locale));
 		}
 		if(!has) this.setObtained(player);
 	}
@@ -119,6 +141,7 @@ export class Achievement {
 		return player.achievements.get(this.nid);
 	}
 }
+
 
 Events.on(EventType.PlayerJoin, ({player}: {player: mindustryPlayer}) => {
 	Time.mark();

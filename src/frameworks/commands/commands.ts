@@ -5,7 +5,8 @@ For usage information, see docs/framework-usage-guide.md
 For maintenance information, see docs/frameworks.md
 */
 //Behold, the power of typescript!
-
+ 
+import { i18n } from "/frameworks/i18n";
 import * as api from "/api";
 import { prefixes } from "/config";
 import { CommandError, fail } from "/frameworks/commands/errors";
@@ -18,7 +19,7 @@ import { FishEvents, uuidPattern } from "/globals";
 import { FishPlayer } from "/players";
 import { Rank, RoleFlag } from "/ranks";
 import type { ClientCommandHandler, CommandArg, SearchResult, ServerCommandHandler } from "/types";
-import { getBlock, getItem, getMap, getTeam, getUnitType, handleError, match, outputConsole, outputFail, outputMessage, outputSuccess, parseTimeString } from "/utils";
+import { getBlock, getItem, getMap, getTeam, getUnitType, handleError, match, outputConsole, outputFail, outputI18nMessage, outputI18nSuccess, outputMessage, outputSuccess, parseTimeString } from "/utils";
 
 const hiddenUnauthorizedMessage = "[scarlet]Unknown command. Check [lightgray]/help[scarlet].";
 
@@ -449,14 +450,14 @@ export async function processArgs(args: string[], processedCmdArgs: CommandArg[]
 				await disambiguateArgument(
 					Rank.search(args[i]),
 					...commonArgs,
-					r => r.coloredName()
+					r => r.coloredName(sender!.locale)
 				);
 				break;
 			case "roleflag":
 				await disambiguateArgument(
 					RoleFlag.search(args[i]),
 					...commonArgs,
-					f => f.coloredName()
+					f => f.coloredName(sender!.locale)
 				);
 				break;
 			case "item":
@@ -626,6 +627,18 @@ export function register(commands: Record<string, FishCommandData<string, any> |
 						outputFail: message => { outputFail(message, sender); failed = true; },
 						outputSuccess: message => outputSuccess(message, sender),
 						output: message => outputMessage(message, sender),
+						localizedOutput: (key, ...fmt: unknown[]) => outputI18nMessage(key, sender, ...fmt),
+						outputLocalizedFail: (key, ...fmt: unknown[]) => { outputI18nMessage(key, sender, ...fmt); failed = true; },
+						outputLocalizedSuccess: (key, ...fmt: unknown[]) => outputI18nSuccess(key, sender, ...fmt),
+						localizedFail: (key, ...fmt: unknown[]) => {
+							const message = i18n(key, sender.locale, ...fmt); const err = new Error(message);
+							(err as any).data = message;
+							Object.setPrototypeOf(err, CommandError.prototype);
+							throw err;
+						},
+						localize(key, ...fmt) {
+							return i18n(typeof key == "string" ? key : key[0], sender.locale, fmt);
+						},
 						f: f_client,
 						execServer: command => serverHandler.handleMessage(command),
 						admins: Vars.netServer.admins,

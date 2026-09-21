@@ -3,10 +3,6 @@
 Copyright © BalaM314, 2026. All Rights Reserved.
 This file contains the code for the achievements system.
 */
-var __makeTemplateObject = (this && this.__makeTemplateObject) || function (cooked, raw) {
-    if (Object.defineProperty) { Object.defineProperty(cooked, "raw", { value: raw }); } else { cooked.raw = raw; }
-    return cooked;
-};
 var __read = (this && this.__read) || function (o, n) {
     var m = typeof Symbol === "function" && o[Symbol.iterator];
     if (!m) return o;
@@ -23,6 +19,15 @@ var __read = (this && this.__read) || function (o, n) {
     }
     return ar;
 };
+var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
+    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+        if (ar || !(i in from)) {
+            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+        }
+    }
+    return to.concat(ar || Array.prototype.slice.call(from));
+};
 var __values = (this && this.__values) || function(o) {
     var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
     if (m) return m.call(o);
@@ -36,9 +41,21 @@ var __values = (this && this.__values) || function(o) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Achievement = void 0;
+exports.mapNameToDescArgs = mapNameToDescArgs;
 var config_1 = require("/config");
+var i18n_1 = require("/frameworks/i18n");
 var globals_1 = require("/globals");
 var players_1 = require("/players");
+var ranks_1 = require("/ranks");
+// keys are sids
+function mapNameToDescArgs(name, locale) {
+    var _a;
+    var possibleDescArgs = {
+        "verified": [ranks_1.Rank.active.coloredName(locale)],
+        "drown_mace_in_cryo": [Blocks.cryofluid.emoji()],
+    };
+    return (_a = possibleDescArgs[name]) !== null && _a !== void 0 ? _a : [];
+}
 var Achievement = /** @class */ (function () {
     function Achievement(icon, name, description, options) {
         var _a;
@@ -90,11 +107,8 @@ var Achievement = /** @class */ (function () {
                 Achievement.checkGameover.push(this);
         }
     }
-    Achievement.prototype.message = function () {
-        return config_1.FColor.achievement(templateObject_1 || (templateObject_1 = __makeTemplateObject(["Achievement granted!\n[accent]", "[white]: ", ""], ["Achievement granted!\\n[accent]", "[white]: ", ""])), this.name, this.description);
-    };
-    Achievement.prototype.messageToEveryone = function (player) {
-        return config_1.FColor.achievement(templateObject_2 || (templateObject_2 = __makeTemplateObject(["Player ", " has completed the achievement \"", "\"."], ["Player ", " has completed the achievement \"", "\"."])), player.prefixedName, this.name);
+    Achievement.prototype.message = function (locale) {
+        return config_1.FColor.achievement((0, i18n_1.i18n)("achievements.granted", locale, (0, i18n_1.i18n)("achievement.".concat(this.sid, ".name"), locale), i18n_1.i18n.apply(void 0, __spreadArray(["achievement.".concat(this.sid, ".description"), locale], __read(mapNameToDescArgs(this.sid, locale)), false))));
     };
     Achievement.prototype.allowedInMode = function () {
         return this.allowedModes.includes(config_1.Gamemode.name());
@@ -104,20 +118,22 @@ var Achievement = /** @class */ (function () {
         players_1.FishPlayer.forEachPlayer(function (p) {
             if (!_this.has(p) && (!team || p.team() == team)) {
                 if (_this.notify != "nobody")
-                    p.sendMessage(_this.message());
+                    p.sendMessage(_this.message(p.locale));
                 _this.setObtained(p);
             }
         });
     };
     /** Do not call this in a loop on an achievement set to notify everyone. */
     Achievement.prototype.grantTo = function (player, allowRepeatMessage) {
+        var _this = this;
         if (allowRepeatMessage === void 0) { allowRepeatMessage = false; }
         var has = this.has(player);
         if (!has || allowRepeatMessage) {
-            if (this.notify == "everyone")
-                Call.sendMessage(this.messageToEveryone(player));
+            if (this.notify == "everyone") {
+                Groups.player.each(function (p) { return p.sendMessage(config_1.FColor.achievement((0, i18n_1.i18n)("achievements.othgranted", p.locale, player.prefixedName, (0, i18n_1.i18n)("achievement.".concat(_this.sid, ".name"), p.locale)))); });
+            }
             else if (this.notify == "player")
-                player.sendMessage(this.message());
+                player.sendMessage(this.message(player.locale));
         }
         if (!has)
             this.setObtained(player);
@@ -287,4 +303,3 @@ Timer.schedule(function () {
     }
     Log.debug("ach infrequent @", Time.elapsed());
 }, 10, 10);
-var templateObject_1, templateObject_2;

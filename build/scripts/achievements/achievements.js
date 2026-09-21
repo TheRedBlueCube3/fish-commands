@@ -346,7 +346,7 @@ exports.Achievements = {
     enemy_core_low_hp: new framework_1.Achievement(["red", Blocks.coreNucleus.emoji()], "So Close", "Cause the enemy core to reach less than 50 health, but survive.", {
         modes: ["not", "sandbox"],
     }),
-    verified: new framework_1.Achievement([ranks_1.Rank.active.color, Iconc.ok], "Verified", "Be promoted automatically to ".concat(ranks_1.Rank.active.coloredName(), " rank."), {
+    verified: new framework_1.Achievement([ranks_1.Rank.active.color, Iconc.ok], "Verified", "Be promoted automatically to rank.", {
         checkPlayerJoin: function (p) { return p.ranksAtLeast("active"); }, notify: "nobody"
     }),
     click_me: new framework_1.Achievement(Iconc.bookOpen, "Clicked", "Run /achievementgrid and click this achievement."),
