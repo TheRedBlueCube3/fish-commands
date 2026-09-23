@@ -441,7 +441,7 @@ exports.commands = (0, commands_1.commandList)({
                             (0, utils_1.logAction)("set rank to ".concat(rank.name, " for"), sender, player);
                             outputSuccess(f(templateObject_20 || (templateObject_20 = __makeTemplateObject(["Set rank of player ", " to ", ""], ["Set rank of player ", " to ", ""])), player, rank));
                             if (player !== sender)
-                                player.sendMessage((0, i18n_1.i18n)("ranks.set", player.locale, rank.coloredName(player.locale)));
+                                player.sendMessage((0, i18n_1.i18n)("server.rankset", player.locale, rank.coloredName(player.locale)));
                             return [2 /*return*/];
                     }
                 });

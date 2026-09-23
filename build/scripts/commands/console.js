@@ -136,7 +136,7 @@ exports.commands = (0, commands_1.consoleCommandList)({
                             _c.sent();
                             (0, utils_1.logAction)("set rank to ".concat(args.rank.name, " for"), "console", args.player);
                             outputSuccess(f(templateObject_3 || (templateObject_3 = __makeTemplateObject(["Set rank of player ", " to ", ""], ["Set rank of player ", " to ", ""])), args.player, args.rank));
-                            args.player.sendMessage((0, i18n_1.i18n)("ranks.set", args.player.locale, args.rank.coloredName(args.player.locale)));
+                            args.player.sendMessage((0, i18n_1.i18n)("server.rankset", args.player.locale, args.rank.coloredName(args.player.locale)));
                             return [2 /*return*/];
                     }
                 });
@@ -753,9 +753,9 @@ exports.commands = (0, commands_1.consoleCommandList)({
             var _b;
             var outputSuccess = _a.outputSuccess;
             var task = (_b = globals_1.fishState.restartLoopTask) !== null && _b !== void 0 ? _b : (0, commands_1.fail)("No restart scheduled.");
-            Call.sendMessage("[scarlet]Aborting...");
+            (0, i18n_1.sendLocalizedMessage)("server.restartaborting");
             task.cancel();
-            Call.sendMessage("[scarlet]Server restart canceled.");
+            (0, i18n_1.sendLocalizedMessage)("server.restartcanceled");
             outputSuccess("Canceled restart.");
         }
     },
@@ -825,7 +825,8 @@ exports.commands = (0, commands_1.consoleCommandList)({
                         case 3:
                             _f.sent();
                             (0, utils_1.logAction)('stopped', "console", args.player, (_e = args.message) !== null && _e !== void 0 ? _e : undefined, time);
-                            Call.sendMessage("[scarlet]Player \"".concat(args.player.prefixedName, "[scarlet]\" has been marked for ").concat((0, utils_1.formatTime)(time)).concat(args.message ? " with reason: [white]".concat(args.message, "[]") : "", "."));
+                            // Call.sendMessage(`[scarlet]Player "${args.player.prefixedName}[scarlet]" has been marked for ${formatTime(time)}${args.message ? ` with reason: [white]${args.message}[]` : ""}.`);
+                            Groups.player.each(function (p) { return p.sendMessage((0, i18n_1.i18n)("player.gotstopped", p.locale, args.player.prefixedName, (0, utils_1.formatTimeLocalize)(time, p.locale), args.message ? (" " + (0, i18n_1.i18n)("player.gotstopped.reason", args.message)) : "")); });
                             return [2 /*return*/];
                     }
                 });
@@ -865,7 +866,7 @@ exports.commands = (0, commands_1.consoleCommandList)({
             var output = _a.output, outputSuccess = _a.outputSuccess;
             output("Removing fires...");
             var totalRemoved = 0;
-            Call.sendMessage("[scarlet][[Fire Department]:[yellow] Fires were reported. Trucks are en-route. Removing all fires shortly.");
+            (0, i18n_1.sendLocalizedMessage)("console.clearfire.firereported");
             Timer.schedule(function () {
                 totalRemoved += Groups.fire.size();
                 Groups.fire.each(function (f) { return f.remove(); });
@@ -873,7 +874,7 @@ exports.commands = (0, commands_1.consoleCommandList)({
             }, 2, 0.1, 40);
             Timer.schedule(function () {
                 outputSuccess("Removed ".concat(totalRemoved, " fires."));
-                Call.sendMessage("[scarlet][[Fire Department]:[yellow] We've extinguished ".concat(totalRemoved, " fires."));
+                (0, i18n_1.sendLocalizedMessage)("console.clearfire.fireremoved");
             }, 6.1);
         }
     },
@@ -1088,7 +1089,7 @@ exports.commands = (0, commands_1.consoleCommandList)({
                             if (args.player.autoflagged) {
                                 args.player.autoflagged = false;
                                 if (args.player.connected()) {
-                                    args.player.sendMessage("[yellow]You have been unflagged.");
+                                    args.player.sendMessage((0, i18n_1.i18n)("server.unflagged", args.player.locale));
                                     args.player.updateName();
                                     args.player.forceRespawn();
                                 }
