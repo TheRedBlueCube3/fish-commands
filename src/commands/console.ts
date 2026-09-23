@@ -14,7 +14,7 @@ import { Duration, escapeStringColorsServer, to2DArray } from "/funcs";
 import { FishEvents, fishState, ipPattern, ipPortPattern, maxTime, tileHistory, uuidPattern } from "/globals";
 import { FishPlayer } from "/players";
 import { Rank } from "/ranks";
-import { colorNumber, fishCommandsRootDirPath, formatTime, formatTimeRelative, formatTimestampFull, getAntiBotInfo, getIPRange, logAction, serverRestartLoop, unblacklist, updateBans } from "/utils";
+import { colorNumber, fishCommandsRootDirPath, formatTime, formatTimeLocalize, formatTimeRelative, formatTimestampFull, getAntiBotInfo, getIPRange, logAction, serverRestartLoop, unblacklist, updateBans } from "/utils";
 
 
 export const commands = consoleCommandList({
@@ -28,7 +28,7 @@ export const commands = consoleCommandList({
 			await args.player.setRank(args.rank);
 			logAction(`set rank to ${args.rank.name} for`, "console", args.player);
 			outputSuccess(f`Set rank of player ${args.player} to ${args.rank}`);
-			args.player.sendMessage(i18n(`ranks.set`, args.player.locale, args.rank.coloredName(args.player.locale)));
+			args.player.sendMessage(i18n(`server.rankset`, args.player.locale, args.rank.coloredName(args.player.locale)));
 		}
 	},
 	admin: {
@@ -497,9 +497,9 @@ export const commands = consoleCommandList({
 		description: "Cancels a planned server restart.",
 		handler({outputSuccess}){
 			const task = fishState.restartLoopTask ?? fail(`No restart scheduled.`);
-			Call.sendMessage(`[scarlet]Aborting...`);
+			sendLocalizedMessage("server.restartaborting");
 			task.cancel();
-			Call.sendMessage(`[scarlet]Server restart canceled.`);
+			sendLocalizedMessage("server.restartcanceled");
 			outputSuccess("Canceled restart.");
 		}
 	},
@@ -559,7 +559,8 @@ Length of tilelog entries: ${Math.round(Object.values(tileHistory).reduce((acc, 
 			if(time + Date.now() > maxTime) fail(`Error: time too high.`);
 			await args.player.stop("console", time, args.message ?? undefined);
 			logAction('stopped', "console", args.player, args.message ?? undefined, time);
-			Call.sendMessage(`[scarlet]Player "${args.player.prefixedName}[scarlet]" has been marked for ${formatTime(time)}${args.message ? ` with reason: [white]${args.message}[]` : ""}.`);
+			// Call.sendMessage(`[scarlet]Player "${args.player.prefixedName}[scarlet]" has been marked for ${formatTime(time)}${args.message ? ` with reason: [white]${args.message}[]` : ""}.`);
+			Groups.player.each(p=>p.sendMessage(i18n(`player.gotstopped`, p.locale, args.player.prefixedName, formatTimeLocalize(time, p.locale), args.message ? (" " + i18n("player.gotstopped.reason", args.message)) : "")));
 		}
 	},
 	stopoffline: {
@@ -581,7 +582,7 @@ Length of tilelog entries: ${Math.round(Object.values(tileHistory).reduce((acc, 
 		handler({output, outputSuccess}){
 			output(`Removing fires...`);
 			let totalRemoved = 0;
-			Call.sendMessage("[scarlet][[Fire Department]:[yellow] Fires were reported. Trucks are en-route. Removing all fires shortly.");
+			sendLocalizedMessage("console.clearfire.firereported");
 			Timer.schedule(() => {
 				totalRemoved += Groups.fire.size();
 				Groups.fire.each(f => f.remove());
@@ -589,7 +590,7 @@ Length of tilelog entries: ${Math.round(Object.values(tileHistory).reduce((acc, 
 			}, 2, 0.1, 40);
 			Timer.schedule(() => {
 				outputSuccess(`Removed ${totalRemoved} fires.`);
-				Call.sendMessage(`[scarlet][[Fire Department]:[yellow] We've extinguished ${totalRemoved} fires.`);
+				sendLocalizedMessage("console.clearfire.fireremoved");
 			}, 6.1);
 		}
 	},
@@ -770,7 +771,7 @@ ${FishPlayer.mapPlayers(p =>
 			} else if(args.player.autoflagged){
 				args.player.autoflagged = false;
 				if(args.player.connected()){
-					args.player.sendMessage("[yellow]You have been unflagged.");
+					args.player.sendMessage(i18n("server.unflagged", args.player.locale));
 					args.player.updateName();
 					args.player.forceRespawn();
 				}

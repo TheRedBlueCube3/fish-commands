@@ -1231,7 +1231,7 @@ class Locale {
 	static getDefault(): Locale;
 	getDisplayCountry(): string;
 
-	// tbd
+	// ...etc...
 }
 
 class I18NBundle {

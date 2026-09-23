@@ -223,7 +223,7 @@ export const commands = commandList({
 			await player.setRank(rank);
 			logAction(`set rank to ${rank.name} for`, sender, player);
 			outputSuccess(f`Set rank of player ${player} to ${rank}`);
-			if(player !== sender) player.sendMessage(i18n(`ranks.set`, player.locale, rank.coloredName(player.locale)));
+			if(player !== sender) player.sendMessage(i18n(`server.rankset`, player.locale, rank.coloredName(player.locale)));
 		}
 	},
 
