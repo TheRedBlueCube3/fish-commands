@@ -1251,17 +1251,6 @@ Win rate: ${stats.gamesWon / stats.gamesFinished}`
 				})
 			: matching[0];
 			
-			// output(FColor.achievement`\
-// Achievement ${achievement.icon} ${copy(achievement.name)}
-// [white]--------------[]
-// ${copy(achievement.description + (achievement.extendedDescription ? ("\n" + `[gray]${achievement.extendedDescription}`) : ""))}
-// Allowed modes: ${achievement.modesText}
-// Unlocked: ${f.boolGood(achievement.has(sender))}
-// ${verbose ? `[gray]ID: (${achievement.nid})${achievement.sid}\n` : ""}\
-// ${verbose ? `[gray]Notifies: ${achievement.notify}\n` : ""}\
-// ${achievement.hidden ? "This achievement is secret." : ""}\
-// `);
-
 			output(FColor.achievement(localize("command.achievement.output",
 				achievement.icon, 
 				copy(localize(`achievement.${achievement.sid}.name`)), 

@@ -4,6 +4,7 @@ This file contains member commands, which are fun cosmetics for donators.
 */
 
 import { Perm, Req, command, commandList, fail } from "/frameworks/commands";
+import { localizedLabel } from "/frameworks/i18n";
 import { fishState } from "/globals";
 import { FishPlayer } from "/players";
 
@@ -14,30 +15,31 @@ export const commands = commandList({
 		description: 'Spawns a cool pet with a displayed name that follows you around.',
 		perm: Perm.member,
 		data: {} as Record<string, Unit>,
-		handler({args, sender, data, outputSuccess}){
+		handler({args, sender, data, outputSuccess, localize}){
 			if(!args.name){
 				const pet = data[sender.uuid];
 				if(pet){
 					pet.kill();
 					delete data[sender.uuid];
-					outputSuccess("Your pet has been removed.");
+					outputSuccess(localize`command.pet.removed`);
 					return;
 				}
 			}
-			if(sender.muted() || !args.name) args.name = `${sender.name}[white]'s pet`;
-			if(args.name.length > 500) fail(`Name cannot be more than 500 characters.`);
+			const useKey = sender.muted() || !args.name;
+			if(useKey || !args.name /* typescript moment */ ) args.name = "command.pet.petname";
+			if(args.name.length > 500) fail(localize`command.pet.toolongname`);
 			if(Strings.stripColors(args.name).length > 70)
-				fail(`Name cannot be more than 70 characters, not including color tags.`);
+				fail(localize`command.pet.toolongname.nocolortags`);
 			data[sender.uuid]?.kill();
-			const unit = sender.unit() ?? fail(`You do not have a unit for the pet to follow.`);
+			const unit = sender.unit() ?? fail(localize`command.pet.nounit`);
 			if(!Vars.fogControl.isDiscovered(sender.team(), World.conv(unit.x), World.conv(unit.y)))
-				fail(`Cannot spawn pets in fog.`);
+				fail(localize`command.pet.fog`);
 			const pet = UnitTypes.merui.spawn(sender.team(), unit.x, unit.y);
 			pet.apply(StatusEffects.disarmed, Number.MAX_SAFE_INTEGER);
 			data[sender.uuid] = pet;
 
 			Call.infoPopup('[#7FD7FD7f]\uE81B', 5, Align.topRight, 180, 0, 0, 10);
-			outputSuccess(`Spawned a pet.`);
+			outputSuccess(localize`command.pet.success`);
 
 			const petName = args.name;
 			const id = fishState.labelID++;
@@ -46,17 +48,17 @@ export const commands = commandList({
 					const unit = sender.unit();
 					const currentPet = data[sender.uuid];
 					if(pet != currentPet){
-						Call.label(null, id, 0, 0, 0, 0);
+						Call["label(java.lang.String,int,float,float,float,int)"](null, id, 0, 0, 0, 0);
 						return;
 					}
 					if(currentPet.dead){
 						delete data[sender.uuid];
-						Call.label(null, id, 0, 0, 0, 0);
+						Call["label(java.lang.String,int,float,float,float,int)"](null, id, 0, 0, 0, 0);
 						return;
 					}
 					if(!sender.connected()){
 						currentPet?.kill();
-						Call.label(null, id, 0, 0, 0, 0);
+						Call["label(java.lang.String,int,float,float,float,int)"](null, id, 0, 0, 0, 0);
 						return;
 					}
 					if(unit && currentPet){
@@ -69,7 +71,10 @@ export const commands = commandList({
 						if(Tmp.v1.len() > 20*8){
 							currentPet.apply(StatusEffects.fast, 60);
 						}
-						Call.label(petName, id, -1, currentPet.x, currentPet.y + 5);
+						if(useKey)
+							localizedLabel(petName, [sender.name], id, -1, currentPet.x, currentPet.y + 5);
+						else
+							Call.label(petName, id, -1, currentPet.x, currentPet.y + 5);
 						//Pets share the sender's trail
 						if(sender.trail){
 							Call.effect(Fx[sender.trail.type], currentPet.x, currentPet.y, 0, sender.trail.color);
@@ -87,22 +92,22 @@ export const commands = commandList({
 		args: ['color:string?'],
 		description: 'Makes your chat text colored by default.',
 		perm: Perm.member,
-		handler({args, sender, outputFail, outputSuccess}){
+		handler({args, sender, outputFail, outputSuccess, localize}){
 			if(args.color == null || args.color.length == 0){
 				if(sender.highlight != null){
 					sender.highlight = null;
-					outputSuccess("Cleared your highlight.");
+					outputSuccess(localize`command.highlight.cleared`);
 				} else {
-					outputFail("No highlight to clear.");
+					outputFail(localize`command.highlight.noclear`);
 				}
 			} else if(Strings.stripColors(args.color) == ""){
 				sender.highlight = args.color;
-				outputSuccess(`Set highlight to ${args.color.replace("[","").replace("]","")}.`);
+				outputSuccess(localize("command.highlight.set", args.color.replace("[","").replace("]","")));
 			} else if(Strings.stripColors(`[${args.color}]`) == ""){
 				sender.highlight = `[${args.color}]`;
-				outputSuccess(`Set highlight to ${args.color}.`);
+				outputSuccess(localize("command.highlight.set", args.color));
 			} else {
-				outputFail(`[yellow]"${args.color}[yellow]" was not a valid color!`);
+				outputFail(localize("command.highlight.colornotvalid", args.color));
 			}
 		}
 	},
@@ -112,7 +117,7 @@ export const commands = commandList({
 		description: 'Make your name change colors.',
 		perm: Perm.member,
 		requirements: [Req.integerRange("speed", 0, 10)],
-		handler({args, sender, outputSuccess}){
+		handler({args, sender, outputSuccess, localize}){
 			const colors = ['[red]', '[orange]', '[yellow]', '[acid]', '[blue]', '[purple]'];
 			function rainbowLoop(index:number, fishP:FishPlayer){
 				if(!(fishP.rainbow && fishP.player && fishP.connected())) return;
@@ -126,11 +131,11 @@ export const commands = commandList({
 			if(!args.speed){
 				sender.rainbow = null;
 				sender.updateName();
-				outputSuccess("Turned off rainbow.");
+				outputSuccess(localize`command.rainbow.off`);
 			} else {
 				sender.rainbow ??= { speed: args.speed };
 				rainbowLoop(0, sender);
-				outputSuccess(`Activated rainbow name mode with speed ${args.speed}`);
+				outputSuccess(localize(`command.rainbow.on`, args.speed));
 			}
 
 		}

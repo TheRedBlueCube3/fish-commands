@@ -33,6 +33,7 @@ exports.keyExists = exports.valueExists = exports.bundles = void 0;
 exports.i18n = i18n;
 exports.sendLocalizedMessage = sendLocalizedMessage;
 exports.sendLocalizedToast = sendLocalizedToast;
+exports.localizedLabel = localizedLabel;
 //#region I18N helpers
 var handle = Vars.modDirectory.child("fish-commands/bundles/bundle");
 var createLangBundles = function (languages) { return Object.fromEntries(languages.map(function (lang) { return [lang, I18NBundle.createBundle(handle, new Locale(lang))]; })); };
@@ -92,5 +93,13 @@ function sendLocalizedToast(key, duration) {
         args[_i - 2] = arguments[_i];
     }
     Groups.player.each(function (player) { return Call.infoToast(player.con, i18n.apply(void 0, __spreadArray([key, player.locale], __read(args), false)), duration); });
+}
+function localizedLabel(key, args, param1, param2, param3, param4, param5) {
+    if (arguments.length == 5)
+        Groups.player.each(function (p) { return Call["label(mindustry.net.NetConnection,java.lang.String,float,float,float)"](p.con, i18n.apply(void 0, __spreadArray([key, p.locale], __read(args), false)), param1, param2, param3); });
+    else if (arguments.length == 6)
+        Groups.player.each(function (p) { return Call["label(mindustry.net.NetConnection,java.lang.String,int,float,float,float)"](p.con, key ? i18n.apply(void 0, __spreadArray([key, p.locale], __read(args), false)) : null, param1, param2, param3, param4); });
+    else if (arguments.length == 7)
+        Groups.player.each(function (p) { return Call["label(mindustry.net.NetConnection,java.lang.String,int,float,float,float, int)"](p.con, key ? i18n.apply(void 0, __spreadArray([key, p.locale], __read(args), false)) : null, param1, param2, param3, param4, param5); });
 }
 //#endregion

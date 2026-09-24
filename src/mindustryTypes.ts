@@ -26,6 +26,9 @@ const Call: {
 	label(message:string | null, id:number, duration:number, worldx:number, worldy:number, flags:number):void;
 	label(message:string | null, id:number, duration:number, worldx:number, worldy:number):void;
 	label(message:string, duration:number, worldx:number, worldy:number):void;
+	label(player: NetConnection, message:string | null, id:number, duration:number, worldx:number, worldy:number, flags:number):void;
+	label(player: NetConnection, message:string | null, id:number, duration:number, worldx:number, worldy:number):void;
+	label(player: NetConnection, message:string, duration:number, worldx:number, worldy:number):void;
 	labelReliable(message:string | null, id:number, duration:number, worldx:number, worldy:number, flags:number):void;
 	labelReliable(message:string | null, id:number, duration:number, worldx:number, worldy:number):void;
 	labelReliable(message:string | null, duration:number, worldx:number, worldy:number):void;
@@ -453,7 +456,27 @@ class StatusEffect {
 }
 const Fx: Record<string, Effect>;
 type Effect = any;
-const Align: Record<string, any>;
+const Align: {
+	center: 1;
+	top: 2;
+	bottom: 4;
+	left: 8;
+	right: 16;
+
+	topLeft: 10;
+	topRight: 18;
+	bottomLeft: 12;
+	bottomRight: 20;
+
+	isLeft(align: number): boolean;
+	isRight(align: number): boolean;
+	isTop(align: number): boolean;
+	isBottom(align: number): boolean;
+	isCenterVertical(align: number): boolean;
+	isCenterHorizontal(align: number): boolean;
+	
+	toString(align: number): string;
+};
 const Groups: {
 	player: EntityGroup<mindustryPlayer>;
 	unit: EntityGroup<Unit>;

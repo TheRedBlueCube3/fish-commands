@@ -1496,16 +1496,6 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
                             _g.label = 3;
                         case 3:
                             achievement = _c;
-                            // output(FColor.achievement`\
-                            // Achievement ${achievement.icon} ${copy(achievement.name)}
-                            // [white]--------------[]
-                            // ${copy(achievement.description + (achievement.extendedDescription ? ("\n" + `[gray]${achievement.extendedDescription}`) : ""))}
-                            // Allowed modes: ${achievement.modesText}
-                            // Unlocked: ${f.boolGood(achievement.has(sender))}
-                            // ${verbose ? `[gray]ID: (${achievement.nid})${achievement.sid}\n` : ""}\
-                            // ${verbose ? `[gray]Notifies: ${achievement.notify}\n` : ""}\
-                            // ${achievement.hidden ? "This achievement is secret." : ""}\
-                            // `);
                             output(config_1.FColor.achievement(localize("command.achievement.output", achievement.icon, copy(localize("achievement.".concat(achievement.sid, ".name"))), copy(localize.apply(void 0, __spreadArray(["achievement.".concat(achievement.sid, ".description")], __read((0, achievements_1.mapNameToDescArgs)(achievement.sid, sender.locale)), false)) +
                                 ((0, i18n_1.keyExists)("achievement.".concat(achievement.sid, ".note"))
                                     ? ("\n" + "[gray]".concat(localize("achievement.".concat(achievement.sid, ".note"))))

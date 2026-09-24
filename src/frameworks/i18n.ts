@@ -62,4 +62,18 @@ export function sendLocalizedToast(key: string, duration: number, ...args: unkno
 	Groups.player.each(player => Call.infoToast(player.con, i18n(key, player.locale, ...args), duration));
 }
 
+export function localizedLabel(key: string | null, args: unknown[], id: number, duration: number, worldx: number, worldy: number, flags: number): void;
+export function localizedLabel(key:string | null, args: unknown[], id:number, duration:number, worldx:number, worldy:number):void;
+export function localizedLabel(key:string, args: unknown[], duration:number, worldx:number, worldy:number):void;
+
+export function localizedLabel(key: string | null, args: unknown[], param1: number, param2: number, param3: number, param4?: number, param5?: number)
+{
+	if(arguments.length == 5)
+		Groups.player.each(p=>Call["label(mindustry.net.NetConnection,java.lang.String,float,float,float)"](p.con, i18n(key!, p.locale, ...args), param1, param2, param3));
+	else if(arguments.length == 6)
+		Groups.player.each(p=>Call["label(mindustry.net.NetConnection,java.lang.String,int,float,float,float)"](p.con, key ? i18n(key, p.locale, ...args) : null, param1, param2, param3, param4!));
+	else if(arguments.length == 7)
+		Groups.player.each(p=>Call["label(mindustry.net.NetConnection,java.lang.String,int,float,float,float, int)"](p.con, key ? i18n(key, p.locale, ...args) : null, param1, param2, param3, param4!, param5!));
+}
+
 //#endregion
