@@ -23,10 +23,15 @@ export const keyExists: (key: string) => boolean = key => (valueExists(bundles["
 export function i18n(key: string, locale: string, ...args: unknown[])
 {
 	// try passed locale first
-	const bundle = bundles[locale as AddedBundle];
+	let bundle = bundles[locale as AddedBundle];
+	if(!bundle && locale.includes("_")) // if the child locale doesn't exist
+	{
+		// try the parent locale
+		bundle = bundles[locale.slice(0, 2) as AddedBundle];
+	}
 	const value = bundle ? bundle.format(key, ...args) : `???${key}???`;
 	const enCheckValue = bundles["en"].format(key, ...args);
-	if(!valueExists(enCheckValue)) Log.warn(`I18n key ${key} doesn't exist in source locale, but exists in locale ${locale}`);
+	if(!valueExists(enCheckValue) && valueExists(value)) Log.warn(`I18n key ${key} doesn't exist in source locale, but exists in locale ${locale}`);
 	if(valueExists(value)) return value;
 
 	// if passed locale fails, try English locale
@@ -74,6 +79,15 @@ export function localizedLabel(key: string | null, args: unknown[], param1: numb
 		Groups.player.each(p=>Call["label(mindustry.net.NetConnection,java.lang.String,int,float,float,float)"](p.con, key ? i18n(key, p.locale, ...args) : null, param1, param2, param3, param4!));
 	else if(arguments.length == 7)
 		Groups.player.each(p=>Call["label(mindustry.net.NetConnection,java.lang.String,int,float,float,float, int)"](p.con, key ? i18n(key, p.locale, ...args) : null, param1, param2, param3, param4!, param5!));
+}
+
+export function sendLocMessageCB(key: string, argsCB: (locale: string, localize: (key: string, arg: unknown[]	) => string) => unknown[] = () => [])
+{
+	Groups.player.each(player => player.sendMessage(
+		i18n(key, player.locale, ...argsCB(player.locale, (key, arg) => i18n(key, player.locale, ...arg))
+		)
+	)
+	);
 }
 
 //#endregion
