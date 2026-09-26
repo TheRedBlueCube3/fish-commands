@@ -404,7 +404,7 @@ function cleanText(text, applyAntiEvasion) {
     }
     return replacedText;
 }
-function isImpersonator(name, isAdmin) {
+function isImpersonator(name, isAdmin, locale) {
     var e_3, _a;
     var replacedText = cleanText(name);
     var antiEvasionText = cleanText(name, true);
@@ -418,25 +418,26 @@ function isImpersonator(name, isAdmin) {
                 i[1]
             ] : [
                 function (replacedText) { return replacedText.includes(i); },
-                "Name contains disallowed ".concat(i.length == 1 ? "icon" : "word", " '").concat(i, "'")
+                // `Name contains disallowed ${i.length == 1 ? "icon" : "word"} '${i}'`
+                [i.length == 1 ? "badicon" : "badword", i]
             ];
         });
     })([
-        [/\bserver\b/, "Name contains disallowed word 'server'"],
+        [/\bserver\b/, "badwordserver"],
         "admin", "moderator", "staff", "owner",
-        [">|||>", "Name contains >|||> which is reserved for the server owner"],
+        [">|||>", "fish"],
         "\uE817", "\uE82C", "\uE88E", "\uE813",
-        ["⚠Marked Griefer⚠", "Name contains ⚠Marked Griefer⚠ which is reserved for actually marked people"],
-        [/^[<\uE825].{1,3}[>\uE83A]/, "Name contains a prefix such as <a> which is used for role prefixes"],
-        [function (replacedText) { return !isAdmin && config_1.adminNames.includes(replacedText.replace(/ /g, "")); }, "One of our admins uses this name"]
+        ["⚠Marked Griefer⚠", "marked"],
+        [/^[<\uE825].{1,3}[>\uE83A]/, "prefix"],
+        [function (replacedText) { return !isAdmin && config_1.adminNames.includes(replacedText.replace(/ /g, "")); }, "admin"]
     ]);
     try {
         for (var filters_1 = __values(filters), filters_1_1 = filters_1.next(); !filters_1_1.done; filters_1_1 = filters_1.next()) {
-            var _b = __read(filters_1_1.value, 2), check = _b[0], message = _b[1];
+            var _b = __read(filters_1_1.value, 2), check = _b[0], key = _b[1];
             if (check(replacedText))
-                return message;
+                return Array.isArray(key) ? (0, i18n_1.i18n)("self.impersonator.reason.".concat(key[0]), locale, key[1]) : (0, i18n_1.i18n)("self.impersonator.reason.".concat(key), locale);
             if (check(antiEvasionText))
-                return message;
+                return Array.isArray(key) ? (0, i18n_1.i18n)("self.impersonator.reason.".concat(key[0]), locale, key[1]) : (0, i18n_1.i18n)("self.impersonator.reason.".concat(key), locale);
         }
     }
     catch (e_3_1) { e_3 = { error: e_3_1 }; }

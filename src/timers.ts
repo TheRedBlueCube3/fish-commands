@@ -12,7 +12,7 @@ import { Duration, DurationSecs } from "/funcs";
 import { dosBlacklistCopy, FishEvents, fishState, ipJoins, joinDemographics } from "/globals";
 import { FishPlayer } from "/players";
 import { definitelyRealMemoryCorruption, neutralGameover, unblacklist } from "/utils";
-import { i18n, sendLocalizedMessage, sendLocalizedToast } from "/frameworks/i18n";
+import { i18n, sendLocalizedMessage, sendLocalizedToast, sendLocMessageCB } from "/frameworks/i18n";
 
 
 /** Must be called once, and only once, on server start. */

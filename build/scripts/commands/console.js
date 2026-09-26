@@ -826,7 +826,16 @@ exports.commands = (0, commands_1.consoleCommandList)({
                             _f.sent();
                             (0, utils_1.logAction)('stopped', "console", args.player, (_e = args.message) !== null && _e !== void 0 ? _e : undefined, time);
                             // Call.sendMessage(`[scarlet]Player "${args.player.prefixedName}[scarlet]" has been marked for ${formatTime(time)}${args.message ? ` with reason: [white]${args.message}[]` : ""}.`);
-                            Groups.player.each(function (p) { return p.sendMessage((0, i18n_1.i18n)("player.gotstopped", p.locale, args.player.prefixedName, (0, utils_1.formatTimeLocalize)(time, p.locale), args.message ? (" " + (0, i18n_1.i18n)("player.gotstopped.reason", args.message)) : "")); });
+                            // Groups.player.each(p=>p.sendMessage(i18n(`player.gotstopped`, p.locale, args.player.prefixedName, formatTimeLocalize(time, p.locale), args.message ? (" " + i18n("player.gotstopped.reason", args.message)) : "")));
+                            (0, i18n_1.sendLocMessageCB)("player.gotstopped", function (locale, localize) {
+                                return [
+                                    args.player.prefixedName,
+                                    (0, utils_1.formatTimeLocalize)(time, locale),
+                                    args.message
+                                        ? (" " + localize("player.gotstopped.reason", [args.message]))
+                                        : ""
+                                ];
+                            });
                             return [2 /*return*/];
                     }
                 });

@@ -14,7 +14,7 @@ import { FishEvents, fishState, maxTime } from "/globals";
 import { PartialMapRun } from "/maps";
 import { Rank, RankName, RoleFlag, RoleFlagName } from "/ranks";
 import type { FishPlayerData, PlayerHistoryEntry, Stats, UploadedFishPlayerData } from "/types";
-import { cleanText, formatTime, formatTimeRelative, formatTimeRelativeLocalize, isImpersonator, matchFilter } from "/utils";
+import { cleanText, formatTime, formatTimeLocalize, formatTimeRelative, formatTimeRelativeLocalize, isImpersonator, matchFilter } from "/utils";
 
 
 export class FishPlayer<Connected extends boolean = boolean> {
@@ -330,7 +330,7 @@ export class FishPlayer<Connected extends boolean = boolean> {
 			fishP.updateAdminStatus();
 			fishP.updateAutoflaggedStatus();
 			fishP.sendWelcomeMessage();
-			if(fishP?.player) fishP.player.sendMessage(i18n("dataFetchFailed", fishP.player.locale));
+			if(fishP?.player) fishP.sendLocalizedMessage("dataFetchFailed");
 			else this.dataFetchFailedUuids.add(uuid);
 		});
 	}
@@ -431,11 +431,11 @@ export class FishPlayer<Connected extends boolean = boolean> {
 				this.stopUnit();
 				this.sendMessage(
 					message
-					? `[scarlet]Oopsy Whoopsie! You've been stopped, and marked as a griefer for reason: [white]${message}[]`
-					: `[scarlet]Oopsy Whoopsie! You've been stopped, and marked as a griefer.`);
+					? i18n("self.stopped.reason", this.locale, message)
+					: i18n("self.stopped", this.locale));
 				if(duration < Duration.hours(1)){
 					//less than one hour
-					this.sendMessage(`[yellow]Your mark will expire in ${formatTime(duration)}.`);
+					this.sendMessage(i18n("self.stopped.expires", this.locale, formatTimeLocalize(duration, this.locale)));
 				}
 			}
 		}, () => this.addHistoryEntry({
@@ -454,7 +454,7 @@ export class FishPlayer<Connected extends boolean = boolean> {
 			this.unmarkTime = -1;
 		}, () => {
 			if(this.connected()){
-				this.sendMessage('[yellow]Looks like someone had mercy on you.');
+				this.sendLocalizedMessage("self.freed");
 				this.updateName();
 				this.forceRespawn();
 			}
@@ -508,11 +508,11 @@ export class FishPlayer<Connected extends boolean = boolean> {
 			if(this.connected()){
 				this.sendMessage(
 					message
-					? `[yellow]Hey! You have been muted. You cannot send messages to other players. You can still send messages to staff members. Reason: [white]${message}`
-					: `[yellow]Hey! You have been muted. You cannot send messages to other players. You can still send messages to staff members.`);
+					? i18n("self.muted.reason", this.locale, message)
+					: i18n("self.muted", this.locale));
 				if(duration < Duration.hours(1)){
 					//less than one hour
-					this.sendMessage(`[yellow]Your mute will expire in ${formatTime(duration)}.`);
+					this.sendMessage(i18n("self.muted.expires", this.locale, formatTimeLocalize(duration, this.locale)));
 				}
 			}
 		}, () => this.addHistoryEntry({
@@ -529,7 +529,7 @@ export class FishPlayer<Connected extends boolean = boolean> {
 			this.unmuteTime = -1;
 			this.updateName();
 		}, () => {
-			this.sendMessage(`[green]You have been unmuted.`);
+			this.sendLocalizedMessage("self.unmuted");
 		}, () => this.addHistoryEntry({
 			action: 'unmuted',
 			by: by instanceof FishPlayer ? by.name : by,
@@ -547,12 +547,12 @@ export class FishPlayer<Connected extends boolean = boolean> {
 		fishPlayer.updateSavedInfoFromPlayer(player);
 		if(fishPlayer.validate()){
 			if(!fishPlayer.hasPerm("bypassNameCheck")){
-				const message = isImpersonator(fishPlayer.name, fishPlayer.ranksAtLeast("admin"));
+				const message = isImpersonator(fishPlayer.name, fishPlayer.ranksAtLeast("admin"), fishPlayer.locale);
 				if(message !== false){
-					fishPlayer.sendMessage(`[scarlet]\u26A0[] [gold]Oh no! Our systems think you are a [scarlet]SUSSY IMPERSONATOR[]!\n[gold]Reason: ${message}\n[gold]Change your name to remove the tag.`);
+					fishPlayer.sendLocalizedMessage(`self.impersonator`, undefined, message);
 					fishPlayer.isImpersonator = true;
 				} else if(cleanText(player.name, true).includes("hacker")){
-					fishPlayer.sendMessage("[scarlet]\u26A0 Don't be a script kiddie!");
+					fishPlayer.sendLocalizedMessage(`self.kiddie`);
 					FishEvents.fire("scriptKiddie", [fishPlayer]);
 				}
 			}
@@ -599,7 +599,8 @@ export class FishPlayer<Connected extends boolean = boolean> {
 			})()){
 				const kickDuration = NetServer.kickDuration;
 				//Pass the votekick
-				Call.sendMessage(`[orange]Vote passed.[scarlet] ${player.name}[orange] will be banned from the server for ${kickDuration / 60} minutes.`);
+				// Call.sendMessage(`[orange]Vote passed.[scarlet] ${player.name}[orange] will be banned from the server for ${kickDuration / 60} minutes.`);
+				sendLocalizedMessage(`server.votekick.passed`, player.name, kickDuration / 60);
 				player.kick(Packets.KickReason.vote, kickDuration * 1000); //it is stored in seconds but needs to be converted to millis
 				(Reflect.get(Vars.netServer.currentlyKicking, "task") as TimerTask).cancel();
 				Vars.netServer.currentlyKicking = null;
@@ -640,7 +641,7 @@ export class FishPlayer<Connected extends boolean = boolean> {
 			if(!this.ignoreGameOver && fishPlayer.team() != Team.derelict && winningTeam != Team.derelict){
 				fishPlayer.updateStats(stats => stats.gamesFinished ++);
 				if(fishPlayer.changedTeam){
-					fishPlayer.sendMessage(`Refusing to update stats due to a team change.`);
+					fishPlayer.sendLocalizedMessage(`self.nostatsupdate`);
 				} else {
 					if(fishPlayer.team() == winningTeam) fishPlayer.updateStats(stats => stats.gamesWon ++);
 				}
@@ -689,7 +690,7 @@ export class FishPlayer<Connected extends boolean = boolean> {
 		const name = this.jokeName ?? this.name;
 		if(this.marked()) this.showRankPrefix = true;
 		let prefix = '';
-		if(!this.hasPerm("bypassNameCheck") && isImpersonator(name, this.ranksAtLeast("admin")))
+		if(!this.hasPerm("bypassNameCheck") && isImpersonator(name, this.ranksAtLeast("admin"), this.locale))
 			prefix += prefixes.impersonator;
 		if(this.marked()) prefix += prefixes.marked;
 		else if(this.autoflagged) prefix += prefixes.flagged;
@@ -743,11 +744,7 @@ export class FishPlayer<Connected extends boolean = boolean> {
 	/** Checks if this player's name is allowed. */
 	checkName(){
 		if(matchFilter(this.name, "name")){
-			this.kick(
-`[scarlet]"${this.name}[scarlet]" is not an allowed name because it contains a banned word.
-
-If you are unable to change it, please download Mindustry from Steam or itch.io.`,
-			1);
+			this.kick(i18n("self.kicked.badname", this.locale) ,1);
 		} else {
 			//Non-critical invalid names
 			//If one of these cases trigger, we will rename the player by editing FishPlayer.name
@@ -757,15 +754,15 @@ If you are unable to change it, please download Mindustry from Steam or itch.io.
 			const cleanedName = Strings.stripColors(this.name.replace(/[\u3164]/g, "")).trim();
 			if(cleanedName.length == 0 || cleanedName == "."){
 				this.setName(this.randomName());
-				this.sendMessage(`[orange]Your name was determined to be empty, so it has been replaced with a randomly generated one. To change it, please disconnect and set your name to something that is not empty.`);
+				this.sendLocalizedMessage("self.namechange.emptyname");
 			}
 			if(this.cleanedName.startsWith("@")){
 				this.setName(this.name.replace(/^@/, "(@)"));
-				this.sendMessage(`[orange]Names may not begin with the @ sign, because it is used for commands. Your name has been edited slightly.`);
+				this.sendLocalizedMessage(`self.namechange.selector`);
 			}
 			if(this.cleanedName.includes(`"`)){
 				this.setName(this.name.replace(/"/g, `'`));
-				this.sendMessage(`[orange]Your name may not contain double quotes, because they are used for commands. Your name has been edited slightly.`);
+				this.sendLocalizedMessage(`self.namechange.doublequote`);
 			}
 			return true;
 		}
@@ -781,7 +778,7 @@ If you are unable to change it, please download Mindustry from Steam or itch.io.
 				if(this.hasPerm("mod")){
 					//Staff missing USID, don't let them in
 					Log.err(`&rUSID missing for privileged player &c"${this.cleanedName}"&r: no stored usid, cannot authenticate.\nRun &lgsetusid ${this.uuid} ${receivedUSID}&fr if you have verified this connection attempt.`);
-					this.kick(`Authorization failure! Please ask a staff member with Console Access to approve this connection.`, 1);
+					this.kick(i18n(`self.kicked.auth.mod`, this.locale), 1);
 					FishPlayer.lastAuthKicked = this;
 					return false;
 				} else {
@@ -790,7 +787,7 @@ If you are unable to change it, please download Mindustry from Steam or itch.io.
 			} else {
 				if(receivedUSID != storedUSID){
 					Log.err(`&rUSID mismatch for player &c"${this.cleanedName}"&r: stored usid is &c${storedUSID}&r, but they tried to connect with usid &c${receivedUSID}&r\nRun &lgsetusid ${this.uuid} ${receivedUSID}&fr if you have verified this connection attempt.`);
-					this.kick(`Authorization failure!`, 1);
+					this.kick(i18n(`self.kicked.auth`, this.locale), 1);
 					FishPlayer.lastAuthKicked = this;
 					return false;
 				}
@@ -1219,17 +1216,17 @@ If you are unable to change it, please download Mindustry from Steam or itch.io.
 	 * Sends this player a localized chat message.
 	 * @param ratelimit Time in milliseconds before sending another ratelimited message.
 	 */
-	sendLocalizedMessage(key:string, ratelimit:number = 0){
+	sendLocalizedMessage(key:string, ratelimit:number = 0, ...args: unknown[]){
 		if(Date.now() - this.lastRatelimitedMessage >= ratelimit){
-			this.player?.sendMessage(i18n(key, this.locale));
+			this.player?.sendMessage(i18n(key, this.locale, ...args));
 			this.lastRatelimitedMessage = Date.now();
 		}
 	}
 	showRules<T extends string>(options: T[] = []){
 		return Menu.menu(
-			"Rules for [#0000ff] >|||> FISH [white] servers [white]",
-			rules.join("\n\n[white]") + "\nYou can view these rules again by running [cyan]/rules[].",
-			["[green]I agree to abide by these rules", ...options],
+			i18n(`welcome.rules.menu.title`, this.locale),
+			rules.join("\n\n[white]") + i18n(`welcome.rules.menu.viewagain`, this.locale),
+			[i18n(`welcome.rules.agree`, this.locale), ...options],
 			this,
 			{ onCancel: "null" },
 		);
@@ -1345,7 +1342,7 @@ If you are unable to change it, please download Mindustry from Steam or itch.io.
 				//Only run the code if the unmark time hasn't changed
 				this.forceRespawn();
 				this.updateName();
-				this.sendMessage("[yellow]Your mark has automatically expired.");
+				this.sendLocalizedMessage(`self.stopped.expired`);
 			}
 		}, duration / 1000);
 	}
@@ -1356,7 +1353,7 @@ If you are unable to change it, please download Mindustry from Steam or itch.io.
 				//Only run the code if the unmark time hasn't changed
 				//Otherwise, a different timer will do it
 				this.updateName();
-				this.sendMessage("[yellow]Your mute has automatically expired.");
+				this.sendLocalizedMessage(`self.muted.expired`);
 			}
 		}, duration / 1000);
 	}

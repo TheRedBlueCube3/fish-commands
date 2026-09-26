@@ -414,8 +414,9 @@ var FishPlayer = /** @class */ (function () {
             fishP.updateAdminStatus();
             fishP.updateAutoflaggedStatus();
             fishP.sendWelcomeMessage();
+            // if(fishP?.player) fishP.player.sendMessage(i18n("dataFetchFailed", fishP.player.locale));
             if (fishP === null || fishP === void 0 ? void 0 : fishP.player)
-                fishP.player.sendMessage((0, i18n_1.i18n)("dataFetchFailed", fishP.player.locale));
+                fishP.sendLocalizedMessage("dataFetchFailed");
             else
                 _this.dataFetchFailedUuids.add(uuid);
         });
@@ -575,11 +576,11 @@ var FishPlayer = /** @class */ (function () {
             if (_this.connected() && notify) {
                 _this.stopUnit();
                 _this.sendMessage(message
-                    ? "[scarlet]Oopsy Whoopsie! You've been stopped, and marked as a griefer for reason: [white]".concat(message, "[]")
-                    : "[scarlet]Oopsy Whoopsie! You've been stopped, and marked as a griefer.");
+                    ? (0, i18n_1.i18n)("self.stopped.reason", _this.locale, message)
+                    : (0, i18n_1.i18n)("self.stopped", _this.locale));
                 if (duration < funcs_1.Duration.hours(1)) {
                     //less than one hour
-                    _this.sendMessage("[yellow]Your mark will expire in ".concat((0, utils_1.formatTime)(duration), "."));
+                    _this.sendMessage((0, i18n_1.i18n)("self.stopped.expires", _this.locale, (0, utils_1.formatTimeLocalize)(duration, _this.locale)));
                 }
             }
         }, function () { return _this.addHistoryEntry({
@@ -598,7 +599,7 @@ var FishPlayer = /** @class */ (function () {
             _this.unmarkTime = -1;
         }, function () {
             if (_this.connected()) {
-                _this.sendMessage('[yellow]Looks like someone had mercy on you.');
+                _this.sendLocalizedMessage("self.freed");
                 _this.updateName();
                 _this.forceRespawn();
             }
@@ -679,11 +680,11 @@ var FishPlayer = /** @class */ (function () {
             _this.setUnmuteTimer(duration);
             if (_this.connected()) {
                 _this.sendMessage(message
-                    ? "[yellow]Hey! You have been muted. You cannot send messages to other players. You can still send messages to staff members. Reason: [white]".concat(message)
-                    : "[yellow]Hey! You have been muted. You cannot send messages to other players. You can still send messages to staff members.");
+                    ? (0, i18n_1.i18n)("self.muted.reason", _this.locale, message)
+                    : (0, i18n_1.i18n)("self.muted", _this.locale));
                 if (duration < funcs_1.Duration.hours(1)) {
                     //less than one hour
-                    _this.sendMessage("[yellow]Your mute will expire in ".concat((0, utils_1.formatTime)(duration), "."));
+                    _this.sendMessage((0, i18n_1.i18n)("self.muted.expires", _this.locale, (0, utils_1.formatTimeLocalize)(duration, _this.locale)));
                 }
             }
         }, function () { return _this.addHistoryEntry({
@@ -702,7 +703,7 @@ var FishPlayer = /** @class */ (function () {
             _this.unmuteTime = -1;
             _this.updateName();
         }, function () {
-            _this.sendMessage("[green]You have been unmuted.");
+            _this.sendLocalizedMessage("self.unmuted");
         }, function () { return _this.addHistoryEntry({
             action: 'unmuted',
             by: by instanceof FishPlayer ? by.name : by,
@@ -721,13 +722,13 @@ var FishPlayer = /** @class */ (function () {
         fishPlayer.updateSavedInfoFromPlayer(player);
         if (fishPlayer.validate()) {
             if (!fishPlayer.hasPerm("bypassNameCheck")) {
-                var message = (0, utils_1.isImpersonator)(fishPlayer.name, fishPlayer.ranksAtLeast("admin"));
+                var message = (0, utils_1.isImpersonator)(fishPlayer.name, fishPlayer.ranksAtLeast("admin"), fishPlayer.locale);
                 if (message !== false) {
-                    fishPlayer.sendMessage("[scarlet]\u26A0[] [gold]Oh no! Our systems think you are a [scarlet]SUSSY IMPERSONATOR[]!\n[gold]Reason: ".concat(message, "\n[gold]Change your name to remove the tag."));
+                    fishPlayer.sendLocalizedMessage("self.impersonator", undefined, message);
                     fishPlayer.isImpersonator = true;
                 }
                 else if ((0, utils_1.cleanText)(player.name, true).includes("hacker")) {
-                    fishPlayer.sendMessage("[scarlet]\u26A0 Don't be a script kiddie!");
+                    fishPlayer.sendLocalizedMessage("self.kiddie");
                     globals_1.FishEvents.fire("scriptKiddie", [fishPlayer]);
                 }
             }
@@ -776,7 +777,8 @@ var FishPlayer = /** @class */ (function () {
             })()) {
                 var kickDuration = NetServer.kickDuration;
                 //Pass the votekick
-                Call.sendMessage("[orange]Vote passed.[scarlet] ".concat(player.name, "[orange] will be banned from the server for ").concat(kickDuration / 60, " minutes."));
+                // Call.sendMessage(`[orange]Vote passed.[scarlet] ${player.name}[orange] will be banned from the server for ${kickDuration / 60} minutes.`);
+                (0, i18n_1.sendLocalizedMessage)("server.votekick.passed", player.name, kickDuration / 60);
                 player.kick(Packets.KickReason.vote, kickDuration * 1000); //it is stored in seconds but needs to be converted to millis
                 Reflect.get(Vars.netServer.currentlyKicking, "task").cancel();
                 Vars.netServer.currentlyKicking = null;
@@ -874,7 +876,7 @@ var FishPlayer = /** @class */ (function () {
         if (this.marked())
             this.showRankPrefix = true;
         var prefix = '';
-        if (!this.hasPerm("bypassNameCheck") && (0, utils_1.isImpersonator)(name, this.ranksAtLeast("admin")))
+        if (!this.hasPerm("bypassNameCheck") && (0, utils_1.isImpersonator)(name, this.ranksAtLeast("admin"), this.locale))
             prefix += config_1.prefixes.impersonator;
         if (this.marked())
             prefix += config_1.prefixes.marked;
@@ -1459,8 +1461,12 @@ var FishPlayer = /** @class */ (function () {
     FishPlayer.prototype.sendLocalizedMessage = function (key, ratelimit) {
         var _a;
         if (ratelimit === void 0) { ratelimit = 0; }
+        var args = [];
+        for (var _i = 2; _i < arguments.length; _i++) {
+            args[_i - 2] = arguments[_i];
+        }
         if (Date.now() - this.lastRatelimitedMessage >= ratelimit) {
-            (_a = this.player) === null || _a === void 0 ? void 0 : _a.sendMessage((0, i18n_1.i18n)(key, this.locale));
+            (_a = this.player) === null || _a === void 0 ? void 0 : _a.sendMessage(i18n_1.i18n.apply(void 0, __spreadArray([key, this.locale], __read(args), false)));
             this.lastRatelimitedMessage = Date.now();
         }
     };

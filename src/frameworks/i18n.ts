@@ -81,7 +81,7 @@ export function localizedLabel(key: string | null, args: unknown[], param1: numb
 		Groups.player.each(p=>Call["label(mindustry.net.NetConnection,java.lang.String,int,float,float,float, int)"](p.con, key ? i18n(key, p.locale, ...args) : null, param1, param2, param3, param4!, param5!));
 }
 
-export function sendLocMessageCB(key: string, argsCB: (locale: string, localize: (key: string, arg: unknown[]	) => string) => unknown[] = () => [])
+export function sendLocMessageCB(key: string, argsCB: (locale: string, localize: (key: string, arg: unknown[]) => string) => unknown[] = () => [])
 {
 	Groups.player.each(player => player.sendMessage(
 		i18n(key, player.locale, ...argsCB(player.locale, (key, arg) => i18n(key, player.locale, ...arg))

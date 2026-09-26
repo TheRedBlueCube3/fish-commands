@@ -34,6 +34,7 @@ exports.i18n = i18n;
 exports.sendLocalizedMessage = sendLocalizedMessage;
 exports.sendLocalizedToast = sendLocalizedToast;
 exports.localizedLabel = localizedLabel;
+exports.sendLocMessageCB = sendLocMessageCB;
 //#region I18N helpers
 var handle = Vars.modDirectory.child("fish-commands/bundles/bundle");
 var createLangBundles = function (languages) { return Object.fromEntries(languages.map(function (lang) { return [lang, I18NBundle.createBundle(handle, new Locale(lang))]; })); };
@@ -54,9 +55,14 @@ function i18n(key, locale) {
     }
     // try passed locale first
     var bundle = exports.bundles[locale];
+    if (!bundle && locale.includes("_")) // if the child locale doesn't exist
+     {
+        // try the parent locale
+        bundle = exports.bundles[locale.slice(0, 2)];
+    }
     var value = bundle ? bundle.format.apply(bundle, __spreadArray([key], __read(args), false)) : "???".concat(key, "???");
     var enCheckValue = (_a = exports.bundles["en"]).format.apply(_a, __spreadArray([key], __read(args), false));
-    if (!(0, exports.valueExists)(enCheckValue))
+    if (!(0, exports.valueExists)(enCheckValue) && (0, exports.valueExists)(value))
         Log.warn("I18n key ".concat(key, " doesn't exist in source locale, but exists in locale ").concat(locale));
     if ((0, exports.valueExists)(value))
         return value;
@@ -101,5 +107,9 @@ function localizedLabel(key, args, param1, param2, param3, param4, param5) {
         Groups.player.each(function (p) { return Call["label(mindustry.net.NetConnection,java.lang.String,int,float,float,float)"](p.con, key ? i18n.apply(void 0, __spreadArray([key, p.locale], __read(args), false)) : null, param1, param2, param3, param4); });
     else if (arguments.length == 7)
         Groups.player.each(function (p) { return Call["label(mindustry.net.NetConnection,java.lang.String,int,float,float,float, int)"](p.con, key ? i18n.apply(void 0, __spreadArray([key, p.locale], __read(args), false)) : null, param1, param2, param3, param4, param5); });
+}
+function sendLocMessageCB(key, argsCB) {
+    if (argsCB === void 0) { argsCB = function () { return []; }; }
+    Groups.player.each(function (player) { return player.sendMessage(i18n.apply(void 0, __spreadArray([key, player.locale], __read(argsCB(player.locale, function (key, arg) { return i18n.apply(void 0, __spreadArray([key, player.locale], __read(arg), false)); })), false))); });
 }
 //#endregion

@@ -269,11 +269,11 @@ export function cleanText(text:string, applyAntiEvasion = false){
 	return replacedText;
 }
 
-export function isImpersonator(name:string, isAdmin:boolean):false | string {
+export function isImpersonator(name:string, isAdmin:boolean, locale: string):false | string {
 	const replacedText = cleanText(name);
 	const antiEvasionText = cleanText(name, true);
 	//very clean code i know
-	const filters:Array<[check: (value:string) => boolean, message:string]> = (
+	const filters:Array<[check: (value:string) => boolean, message:string | [string, string]]> = (
 		(input: Array<string | [string | RegExp | ((value:string) => boolean), string]>) =>
 			input.map(i =>
 				Array.isArray(i) ? [
@@ -283,21 +283,22 @@ export function isImpersonator(name:string, isAdmin:boolean):false | string {
 					i[1]
 				] : [
 					replacedText => replacedText.includes(i),
-					`Name contains disallowed ${i.length == 1 ? "icon" : "word"} '${i}'`
+					// `Name contains disallowed ${i.length == 1 ? "icon" : "word"} '${i}'`
+					[i.length == 1 ? "badicon" : "badword", i]
 				]
 			)
 	)([
-		[/\bserver\b/, "Name contains disallowed word 'server'"],
+		[/\bserver\b/, "badwordserver"],
 		"admin", "moderator", "staff", "owner",
-		[">|||>", "Name contains >|||> which is reserved for the server owner"],
+		[">|||>", "fish"],
 		"\uE817", "\uE82C", "\uE88E", "\uE813",
-		["⚠Marked Griefer⚠", "Name contains ⚠Marked Griefer⚠ which is reserved for actually marked people"],
-		[/^[<\uE825].{1,3}[>\uE83A]/, "Name contains a prefix such as <a> which is used for role prefixes"],
-		[(replacedText) => !isAdmin && adminNames.includes(replacedText.replace(/ /g, "")), "One of our admins uses this name"]
+		["⚠Marked Griefer⚠", "marked"],
+		[/^[<\uE825].{1,3}[>\uE83A]/, "prefix"],
+		[(replacedText) => !isAdmin && adminNames.includes(replacedText.replace(/ /g, "")), "admin"]
 	]);
-	for(const [check, message] of filters){
-		if(check(replacedText)) return message;
-		if(check(antiEvasionText)) return message;
+	for(const [check, key] of filters){
+		if(check(replacedText)) return Array.isArray(key) ? i18n(`self.impersonator.reason.${key[0]}`, locale, key[1]) : i18n(`self.impersonator.reason.${key}`, locale);
+		if(check(antiEvasionText)) return Array.isArray(key) ? i18n(`self.impersonator.reason.${key[0]}`, locale, key[1]) : i18n(`self.impersonator.reason.${key}`, locale);
 	}
 	return false;
 }

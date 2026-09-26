@@ -9,7 +9,7 @@ import { FishServer, Gamemode, Mode } from "/config";
 import { updateMaps } from "/files";
 import * as fjsContext from "/fjsContext";
 import { consoleCommandList, fail } from "/frameworks/commands";
-import { AddedBundle, i18n, sendLocalizedMessage } from "/frameworks/i18n";
+import { AddedBundle, i18n, sendLocalizedMessage, sendLocMessageCB } from "/frameworks/i18n";
 import { Duration, escapeStringColorsServer, to2DArray } from "/funcs";
 import { FishEvents, fishState, ipPattern, ipPortPattern, maxTime, tileHistory, uuidPattern } from "/globals";
 import { FishPlayer } from "/players";
@@ -560,7 +560,16 @@ Length of tilelog entries: ${Math.round(Object.values(tileHistory).reduce((acc, 
 			await args.player.stop("console", time, args.message ?? undefined);
 			logAction('stopped', "console", args.player, args.message ?? undefined, time);
 			// Call.sendMessage(`[scarlet]Player "${args.player.prefixedName}[scarlet]" has been marked for ${formatTime(time)}${args.message ? ` with reason: [white]${args.message}[]` : ""}.`);
-			Groups.player.each(p=>p.sendMessage(i18n(`player.gotstopped`, p.locale, args.player.prefixedName, formatTimeLocalize(time, p.locale), args.message ? (" " + i18n("player.gotstopped.reason", args.message)) : "")));
+			// Groups.player.each(p=>p.sendMessage(i18n(`player.gotstopped`, p.locale, args.player.prefixedName, formatTimeLocalize(time, p.locale), args.message ? (" " + i18n("player.gotstopped.reason", args.message)) : "")));
+			sendLocMessageCB("player.gotstopped", (locale, localize) => {
+				return [
+					args.player.prefixedName,
+					formatTimeLocalize(time, locale), 
+					args.message
+						? (" " + localize("player.gotstopped.reason",[args.message])) 
+						: ""
+				];
+			});
 		}
 	},
 	stopoffline: {

@@ -3,7 +3,7 @@ This is a script to check the existence of all keys and to make sure all keys ma
 */
 
 import fs from "fs";
-import path from "path";
+import path, { format } from "path";
 
 console.log("\x1b[1mCheckBundles\x1b[0m");
 
@@ -37,12 +37,26 @@ const bundleContents = Object.fromEntries(bundles.map(file => [filenameToLocale(
 
 // start diagnostic works
 
+function getFormatArgsCount(str: string): number
+{
+	const regex = /\{[0-9]+\}/g;
+	const matches = [...new Set(str.match(regex))]; // remove duplicates
+	if(!matches) return 0;
+	return matches.length;
+}
+
+function makeFormatArgCountArray(locale: string): Record<string, number>
+{
+	return Object.fromEntries(bundleEntries[locale].map(ent => [ent[0], getFormatArgsCount(ent[1])]));
+}
+
 const sourceBundle = bundleContents["en"];
 console.log("\x1b[3mChecking locale key matching...\n\x1b[0m");
 console.log(
 `\x1b[32mLocale \x1b[1;34men\x1b[22m \x1b[3;32m(source locale)\x1b[0m
 	\x1b[1;34m${Object.keys(sourceBundle).length}\x1b[0;32m keys`);
 
+const sourceFormArgCounts = makeFormatArgCountArray("en");
 let hasIssue = false;
 
 // check if every source key exists in every other locale
@@ -71,6 +85,8 @@ for(const locale in bundleContents)
 	if(!lengthsEqual)
 		console.log(`\x1b[1;31m!!! KEYS IN LOCALE ${locale} DON'T MATCH !!!\x1b[0m`);
 
+	const formArgCounts = makeFormatArgCountArray(locale);
+
 	for(const key in sourceBundle)
 	{
 		if(Object.keys(bundle).includes(key)) continue;
@@ -85,8 +101,19 @@ for(const locale in bundleContents)
 		console.log(`\x1b[31mKey \x1b[0;3m${key}\x1b[23;31m is missing from \x1b[1;34msource locale\x1b[22;31m, but exists in locale \x1b[1;34m${locale}\x1b[22;31m!\x1b[0m`);
 	}
 
-	console.log("\x1b[0m\x1b[3mChecking duplicate keys in locale...\x1b[0m");
+	console.log("\x1b[0m\x1b[3mChecking format argument counts...\x1b[0m");
+	
+	for(const key in formArgCounts)
+	{
+		if(!Object.keys(sourceFormArgCounts).includes(key)) continue;
+		const formArgCount = formArgCounts[key];
+		if(sourceFormArgCounts[key] == formArgCount) continue;
+		hasIssue = true;
+		console.log(`\x1b[31mKey \x1b[0;3m${key}\x1b[23;31m has wrong amount of format arguments (\x1b[1;34m${formArgCount}\x1b[22;31m) in locale \x1b[1;34m${locale}\x1b[22;31m compared to \x1b[1;34msource locale\x1b[22;31m (\x1b[1;34m${sourceFormArgCounts[key]}\x1b[22;31m)!\x1b[0m`);
+	}
 
+	console.log("\x1b[0m\x1b[3mChecking duplicate keys in locale...\x1b[0m");
+	
 	const uniques: string[] = [];
 	for(const kv of bundleEntry)
 	{

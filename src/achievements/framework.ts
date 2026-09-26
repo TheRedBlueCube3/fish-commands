@@ -10,7 +10,7 @@ import { FishPlayer } from "/players";
 import { Rank } from "/ranks";
 import { Achievements } from "/achievements";
 
-type PossibleAchievement = keyof typeof Achievements
+type PossibleAchievement = keyof typeof Achievements;
 // keys are sids
 export function mapNameToDescArgs(name: PossibleAchievement, locale: string): string[]
 {

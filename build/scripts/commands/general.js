@@ -349,13 +349,14 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
                 time: d.readNumber(16),
                 type: d.readString(2),
             }); }, 1); }).map(function (h) { return (__assign(__assign({}, h), { info: globals_1.uuidPattern.test(h.uuid) ? player(admins.getInfoOptional(h.uuid)) : null })); });
-            output("[yellow]Tile history for tile (".concat(tile.x, ", ").concat(tile.y, "):\n") + history.map(function (e) {
-                return e.info ?
-                    (sender.hasPerm("viewUUIDs") && data.showUUID ?
-                        "[yellow]".concat(copy(e.info.plainLastName()), "[lightgray](").concat(copy(e.uuid), ")[yellow] ").concat(e.action, " a [cyan]").concat(e.type, "[] ").concat((0, utils_1.formatTimeRelative)(e.time))
-                        : "[yellow]".concat(copy(e.info.plainLastName()), " ").concat(e.action, " a [cyan]").concat(e.type, "[] ").concat((0, utils_1.formatTimeRelative)(e.time)))
-                    : "[yellow]".concat(e.uuid, "[yellow] ").concat(e.action, " a [cyan]").concat(e.type, "[] ").concat((0, utils_1.formatTimeRelative)(e.time));
-            }).join('\n'));
+            // output(`[yellow]Tile history for tile (${tile.x}, ${tile.y}):\n` + history.map(e =>
+            // e.info ?
+            // (sender.hasPerm("viewUUIDs") && data.showUUID ?
+            // `[yellow]${copy(e.info.plainLastName())}[lightgray](${copy(e.uuid)})[yellow] ${e.action} a [cyan]${e.type}[] ${formatTimeRelative(e.time)}`
+            // : `[yellow]${copy(e.info.plainLastName())} ${e.action} a [cyan]${e.type}[] ${formatTimeRelative(e.time)}`)
+            // : `[yellow]${e.uuid}[yellow] ${e.action} a [cyan]${e.type}[] ${formatTimeRelative(e.time)}`
+            // ).join('\n'));
+            output((0, i18n_1.i18n)("command.tilelog.history", sender.locale, tile.x, tile.y) + history.map(function (e) { return e.info ? (sender.hasPerm("viewUUIDs") && data.showUUID ? (0, i18n_1.i18n)("command.tilelog.histentryuuid", sender.locale, copy(e.info.plainLastName()), copy(e.uuid), (0, i18n_1.i18n)("command.tilelog.action.".concat(e.action ? e.action.replace(" ", "").replace("-", "") : ""), sender.locale), e.type, (0, utils_1.formatTimeRelativeLocalize)(e.time, sender.locale)) : (0, i18n_1.i18n)("command.tilelog.histentrynouuid", sender.locale, copy(e.info.plainLastName()), (0, i18n_1.i18n)("command.tilelog.action.".concat(e.action ? e.action.replace(" ", "").replace("-", "") : ""), sender.locale), e.type, (0, utils_1.formatTimeRelativeLocalize)(e.time, sender.locale))) : (0, i18n_1.i18n)("command.tilelog.histentrynoinfo", sender.locale, e.uuid, (0, i18n_1.i18n)("command.tilelog.action.".concat(e.action ? e.action.replace(" ", "").replace("-", "") : ""), sender.locale), e.type, (0, utils_1.formatTimeRelativeLocalize)(e.time, sender.locale)); }).join('\n'));
         }
     }), aoelog: (0, commands_1.command)(function () {
         var allowedActions = [
@@ -367,19 +368,20 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
             description: 'Checks the history of all tiles in the selected region. Can be filtered by action.',
             perm: commands_1.Perm.none,
             handler: function (_a) {
-                var args = _a.args, sender = _a.sender, outputSuccess = _a.outputSuccess, currentTapMode = _a.currentTapMode, handleTaps = _a.handleTaps;
+                var args = _a.args, sender = _a.sender, outputSuccess = _a.outputSuccess, currentTapMode = _a.currentTapMode, handleTaps = _a.handleTaps, localize = _a.localize;
+                allowedActions = allowedActions.map(function (a) { return (0, i18n_1.i18n)("command.tilelog.action.".concat(a ? a.replace(" ", "").replace("-", "") : ""), sender.locale); });
                 if (currentTapMode === "off" || args.action || args.amount) {
                     if (args.action && !allowedActions.includes(args.action))
-                        (0, commands_1.fail)("Invalid action. Allowed actions: ".concat(allowedActions.join(", ")));
+                        (0, commands_1.fail)(localize("command.aoelog.invalid", allowedActions.join(",  ")));
                     if (args.amount && args.amount > 100)
-                        (0, commands_1.fail)("Limit cannot be greater than 100.");
+                        (0, commands_1.fail)(localize(templateObject_7 || (templateObject_7 = __makeTemplateObject(["command.aoelog.toobiglimit"], ["command.aoelog.toobiglimit"]))));
                     cachedPointMap[sender.uuid] = undefined;
                     handleTaps("on");
-                    outputSuccess("Aoelog mode enabled. To see the recent history of all tiles in a rectangular region, tap opposite corners of the rectangle. Run /aoelog with no arguments to disable.");
+                    outputSuccess(localize(templateObject_8 || (templateObject_8 = __makeTemplateObject(["command.aoelog.enabled"], ["command.aoelog.enabled"]))));
                 }
                 else {
                     handleTaps("off");
-                    outputSuccess("Aoelog disabled.");
+                    outputSuccess(localize(templateObject_9 || (templateObject_9 = __makeTemplateObject(["command.aoelog.disabled"], ["command.aoelog.disabled"]))));
                 }
             },
             tapped: function (_a) {
@@ -424,25 +426,25 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
                     }
                     if (limitTiles == 0) {
                         if (args.action)
-                            outputFail("There is no recorded history for the selected region matching the provided filters.");
+                            outputFail((0, i18n_1.i18n)("command.aoelog.nofilthist", sender.locale));
                         else
-                            outputFail("There is no recorded history for the selected region.");
+                            outputFail((0, i18n_1.i18n)("command.aoelog.nohist", sender.locale));
                     }
                     if (limitTiles == amount)
-                        output("Displaying first ".concat(limitTiles, " entries. To show other entries, increase the limit or select a smaller area."));
+                        output((0, i18n_1.i18n)("command.aoelog.firstentries", sender.locale, limitTiles));
                 }
                 var p1 = cachedPointMap[sender.uuid];
                 if (!p1) {
                     cachedPointMap[sender.uuid] = [x, y];
-                    output("1st point set at (".concat(x, ",").concat(y, ")"));
+                    output((0, i18n_1.i18n)("command.aoelog.first", sender.locale, x, y));
                 }
                 else {
                     var p2 = [x, y];
-                    output("2nd point set at (".concat(x, ", ").concat(y, ")"));
+                    output((0, i18n_1.i18n)("command.aoelog.second", sender.locale, x, y));
                     var width = Math.abs(p1[0] - p2[0]);
                     var height = Math.abs(p1[1] - p2[1]);
                     if (width > 50 || height > 50)
-                        (0, commands_1.fail)("Selection too large: width/height cannot be more than 50.");
+                        (0, commands_1.fail)((0, i18n_1.i18n)("command.aoelog.seltoobig", sender.locale));
                     handleArea(p1, p2);
                     cachedPointMap[sender.uuid] = undefined;
                     if (!args.persist)
@@ -470,15 +472,15 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
         handler: function (_a) {
             var sender = _a.sender, _b = _a.args.target, target = _b === void 0 ? sender : _b, localize = _a.localize, outputLocalizedSuccess = _a.outputLocalizedSuccess;
             if (sender.stelled())
-                (0, commands_1.fail)(localize(templateObject_7 || (templateObject_7 = __makeTemplateObject(["command.vanish.stelled"], ["command.vanish.stelled"]))));
+                (0, commands_1.fail)(localize(templateObject_10 || (templateObject_10 = __makeTemplateObject(["command.vanish.stelled"], ["command.vanish.stelled"]))));
             if (sender.muted())
-                (0, commands_1.fail)(localize(templateObject_8 || (templateObject_8 = __makeTemplateObject(["command.vanish.muted"], ["command.vanish.muted"]))));
+                (0, commands_1.fail)(localize(templateObject_11 || (templateObject_11 = __makeTemplateObject(["command.vanish.muted"], ["command.vanish.muted"]))));
             if (sender != target && target.hasPerm("blockTrolling"))
-                (0, commands_1.fail)(localize(templateObject_9 || (templateObject_9 = __makeTemplateObject(["command.vanish.untrollable"], ["command.vanish.untrollable"]))));
+                (0, commands_1.fail)(localize(templateObject_12 || (templateObject_12 = __makeTemplateObject(["command.vanish.untrollable"], ["command.vanish.untrollable"]))));
             if (sender != target && !sender.ranksAtLeast("mod"))
-                (0, commands_1.fail)(localize(templateObject_10 || (templateObject_10 = __makeTemplateObject(["command.vanish.noperms"], ["command.vanish.noperms"]))));
+                (0, commands_1.fail)(localize(templateObject_13 || (templateObject_13 = __makeTemplateObject(["command.vanish.noperms"], ["command.vanish.noperms"]))));
             target.showRankPrefix = !target.showRankPrefix;
-            var isVisible = target.showRankPrefix ? localize(templateObject_11 || (templateObject_11 = __makeTemplateObject(["command.vanish.visible"], ["command.vanish.visible"]))) : localize(templateObject_12 || (templateObject_12 = __makeTemplateObject(["command.vanish.hidden"], ["command.vanish.hidden"])));
+            var isVisible = target.showRankPrefix ? localize(templateObject_14 || (templateObject_14 = __makeTemplateObject(["command.vanish.visible"], ["command.vanish.visible"]))) : localize(templateObject_15 || (templateObject_15 = __makeTemplateObject(["command.vanish.hidden"], ["command.vanish.hidden"])));
             if (target == sender) {
                 outputLocalizedSuccess("command.vanish.ownsuccess", isVisible);
             }
@@ -508,10 +510,17 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
         isHidden: true,
         handler: function (_a) {
             var sender = _a.sender, lastUsedSuccessfullySender = _a.lastUsedSuccessfullySender;
-            if (Date.now() - lastUsedSuccessfullySender > funcs_1.Duration.minutes(1))
-                players_1.FishPlayer.locMessageAllWithPerm(server.requiredPerm, 
-                // `${sender.name}[magenta] has gone to the ${server.name} server. Use [cyan]/${server.name} [magenta]to join them!`
-                "command.server.hasswitched", sender.name, server.name);
+            if (Date.now() - lastUsedSuccessfullySender > funcs_1.Duration.minutes(1)) {
+                var perm_1 = server.requiredPerm; // THANKS TYPESCRIPT
+                if (perm_1) {
+                    players_1.FishPlayer.forEachPlayer(function (fishP) {
+                        if (fishP.hasPerm(perm_1))
+                            fishP.sendMessage((0, i18n_1.i18n)("command.server.hasswitched", fishP.locale, sender.name, (0, i18n_1.i18n)(server.name, fishP.locale), server.name));
+                    });
+                }
+                else
+                    (0, i18n_1.sendLocMessageCB)("command.server.hasswitched", function (_, localize) { return [sender.name, localize(server.name, []), server.name]; });
+            }
             Call.connect(sender.con(), server.ip, server.port);
         },
     },
@@ -555,7 +564,7 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
                         case 0:
                             if (!sender.hasPerm("mod")) {
                                 if (Date.now() - lastUsedSender < 4000)
-                                    (0, commands_1.fail)(localize(templateObject_13 || (templateObject_13 = __makeTemplateObject(["command.s.alreadyused"], ["command.s.alreadyused"]))));
+                                    (0, commands_1.fail)(localize(templateObject_16 || (templateObject_16 = __makeTemplateObject(["command.s.alreadyused"], ["command.s.alreadyused"]))));
                             }
                             players_1.FishPlayer.messageStaff(sender.prefixedName, args.message, sender.hasPerm("mod"));
                             _d.label = 1;
@@ -600,7 +609,7 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
                     switch (_d.label) {
                         case 0:
                             if (!!sender.con().mobile) return [3 /*break*/, 2];
-                            return [4 /*yield*/, menus_1.Menu.confirmDangerous(sender, localize(templateObject_14 || (templateObject_14 = __makeTemplateObject(["command.watch.warning"], ["command.watch.warning"]))))];
+                            return [4 /*yield*/, menus_1.Menu.confirmDangerous(sender, localize(templateObject_17 || (templateObject_17 = __makeTemplateObject(["command.watch.warning"], ["command.watch.warning"]))))];
                         case 1:
                             _d.sent();
                             _d.label = 2;
@@ -611,7 +620,7 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
                             }
                             else if (args.player) {
                                 data.add(sender.uuid);
-                                senderUnit_1 = (_c = sender.unit()) !== null && _c !== void 0 ? _c : (0, commands_1.fail)(localize(templateObject_15 || (templateObject_15 = __makeTemplateObject(["command.watch.nounit"], ["command.watch.nounit"]))));
+                                senderUnit_1 = (_c = sender.unit()) !== null && _c !== void 0 ? _c : (0, commands_1.fail)(localize(templateObject_18 || (templateObject_18 = __makeTemplateObject(["command.watch.nounit"], ["command.watch.nounit"]))));
                                 stayX_1 = senderUnit_1.x;
                                 stayY_1 = senderUnit_1.y;
                                 target_1 = args.player.player;
@@ -666,11 +675,11 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
             handler: function (_a) {
                 var sender = _a.sender, _b = _a.args.target, target = _b === void 0 ? sender : _b, outputSuccess = _a.outputSuccess, f = _a.f, localize = _a.localize;
                 if (!config_1.Gamemode.pvp() && !sender.hasPerm("mod"))
-                    (0, commands_1.fail)(localize(templateObject_16 || (templateObject_16 = __makeTemplateObject(["command.spectate.noperms"], ["command.spectate.noperms"]))));
+                    (0, commands_1.fail)(localize(templateObject_19 || (templateObject_19 = __makeTemplateObject(["command.spectate.noperms"], ["command.spectate.noperms"]))));
                 if (target !== sender && target.hasPerm("blockTrolling"))
-                    (0, commands_1.fail)(localize(templateObject_17 || (templateObject_17 = __makeTemplateObject(["command.spectate.untrollable"], ["command.spectate.untrollable"]))));
+                    (0, commands_1.fail)(localize(templateObject_20 || (templateObject_20 = __makeTemplateObject(["command.spectate.untrollable"], ["command.spectate.untrollable"]))));
                 if (target !== sender && !sender.ranksAtLeast("admin"))
-                    (0, commands_1.fail)(localize(templateObject_18 || (templateObject_18 = __makeTemplateObject(["command.spectate.nopermsspec"], ["command.spectate.nopermsspec"]))));
+                    (0, commands_1.fail)(localize(templateObject_21 || (templateObject_21 = __makeTemplateObject(["command.spectate.nopermsspec"], ["command.spectate.nopermsspec"]))));
                 if (spectators.has(target)) {
                     resume(target);
                     outputSuccess(target == sender
@@ -680,7 +689,7 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
                 else {
                     spectate(target);
                     outputSuccess(target == sender
-                        ? localize(templateObject_19 || (templateObject_19 = __makeTemplateObject(["command.spectate.spectating"], ["command.spectate.spectating"]))) : localize("command.spectate.kickedin", target.name));
+                        ? localize(templateObject_22 || (templateObject_22 = __makeTemplateObject(["command.spectate.spectating"], ["command.spectate.spectating"]))) : localize("command.spectate.kickedin", target.name));
                 }
             }
         };
@@ -699,7 +708,7 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
             };
             var formatList = function (commandList, color) { return commandList.map(function (c) { return formatCommand(c, color); }).join('\n'); };
             if (args.name && ["selectors", "select", "selector", "@help", "@?"].includes(args.name)) {
-                output(localize(templateObject_20 || (templateObject_20 = __makeTemplateObject(["selectors"], ["selectors"]))));
+                output(localize(templateObject_23 || (templateObject_23 = __makeTemplateObject(["selectors"], ["selectors"]))));
             }
             else if (args.name && isNaN(parseInt(args.name)) && !['mod', 'admin', 'member', 'manager', 'trusted'].includes(args.name)) {
                 //name is not a number or a category, therefore it is probably a command name
@@ -763,9 +772,9 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
         handler: function (_a) {
             var _b;
             var args = _a.args, sender = _a.sender, output = _a.output, f = _a.f, localize = _a.localize;
-            var recipient = players_1.FishPlayer.getById((_b = globals_1.recentWhispers[sender.uuid]) !== null && _b !== void 0 ? _b : (0, commands_1.fail)(localize(templateObject_21 || (templateObject_21 = __makeTemplateObject(["command.r.nomessages"], ["command.r.nomessages"])))));
+            var recipient = players_1.FishPlayer.getById((_b = globals_1.recentWhispers[sender.uuid]) !== null && _b !== void 0 ? _b : (0, commands_1.fail)(localize(templateObject_24 || (templateObject_24 = __makeTemplateObject(["command.r.nomessages"], ["command.r.nomessages"])))));
             if (!(recipient === null || recipient === void 0 ? void 0 : recipient.connected()))
-                (0, commands_1.fail)(localize(templateObject_22 || (templateObject_22 = __makeTemplateObject(["command.r.unconnected"], ["command.r.unconnected"]))));
+                (0, commands_1.fail)(localize(templateObject_25 || (templateObject_25 = __makeTemplateObject(["command.r.unconnected"], ["command.r.unconnected"]))));
             globals_1.recentWhispers[globals_1.recentWhispers[sender.uuid]] = sender.uuid;
             recipient.sendMessage((0, i18n_1.i18n)("command.msg.incoming", recipient.locale, sender.prefixedName, args.message));
             output(localize("command.msg.outgoing", sender.prefixedName, args.message));
@@ -780,10 +789,10 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
             if (!args.type) {
                 if (sender.trail != null) {
                     sender.trail = null;
-                    outputSuccess(localize(templateObject_23 || (templateObject_23 = __makeTemplateObject(["command.trail.off"], ["command.trail.off"]))));
+                    outputSuccess(localize(templateObject_26 || (templateObject_26 = __makeTemplateObject(["command.trail.off"], ["command.trail.off"]))));
                 }
                 else {
-                    output(localize(templateObject_24 || (templateObject_24 = __makeTemplateObject(["command.trail.types"], ["command.trail.types"]))));
+                    output(localize(templateObject_27 || (templateObject_27 = __makeTemplateObject(["command.trail.types"], ["command.trail.types"]))));
                 }
                 return;
             }
@@ -800,7 +809,7 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
             var selectedType = trailTypes[args.type];
             if (!selectedType) {
                 if (Object.values(trailTypes).includes(args.type))
-                    (0, commands_1.fail)(localize(templateObject_25 || (templateObject_25 = __makeTemplateObject(["command.trail.usenumeric"], ["command.trail.usenumeric"]))));
+                    (0, commands_1.fail)(localize(templateObject_28 || (templateObject_28 = __makeTemplateObject(["command.trail.usenumeric"], ["command.trail.usenumeric"]))));
                 else
                     (0, commands_1.fail)(localize("command.trail.unavailable", args.type));
             }
@@ -875,17 +884,17 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
         handler: function (_a) {
             var sender = _a.sender, Ohnos = _a.data, localize = _a.localize;
             if (!Ohnos.enabled)
-                (0, commands_1.fail)(localize(templateObject_26 || (templateObject_26 = __makeTemplateObject(["command.ohno.disabled"], ["command.ohno.disabled"]))));
+                (0, commands_1.fail)(localize(templateObject_29 || (templateObject_29 = __makeTemplateObject(["command.ohno.disabled"], ["command.ohno.disabled"]))));
             Ohnos.updateLength();
             if (Ohnos.ohnos.length >= (Groups.player.size() + 1) ||
                 sender.team().data().countType(UnitTypes.alpha) >= Units.getCap(sender.team()))
-                (0, commands_1.fail)(localize(templateObject_27 || (templateObject_27 = __makeTemplateObject(["command.ohno.max"], ["command.ohno.max"]))));
+                (0, commands_1.fail)(localize(templateObject_30 || (templateObject_30 = __makeTemplateObject(["command.ohno.max"], ["command.ohno.max"]))));
             if ((0, utils_1.nearbyEnemyTile)((sender.unit()), 6) != null)
-                (0, commands_1.fail)(localize(templateObject_28 || (templateObject_28 = __makeTemplateObject(["command.ohno.enemy"], ["command.ohno.enemy"]))));
+                (0, commands_1.fail)(localize(templateObject_31 || (templateObject_31 = __makeTemplateObject(["command.ohno.enemy"], ["command.ohno.enemy"]))));
             if (!Vars.fogControl.isDiscovered(sender.team(), sender.player.x, sender.player.y))
-                (0, commands_1.fail)(localize(templateObject_29 || (templateObject_29 = __makeTemplateObject(["command.ohno.fog"], ["command.ohno.fog"]))));
+                (0, commands_1.fail)(localize(templateObject_32 || (templateObject_32 = __makeTemplateObject(["command.ohno.fog"], ["command.ohno.fog"]))));
             if (!UnitTypes.alpha.supportsEnv(Vars.state.rules.env))
-                (0, commands_1.fail)(localize(templateObject_30 || (templateObject_30 = __makeTemplateObject(["command.ohno.alpha"], ["command.ohno.alpha"]))));
+                (0, commands_1.fail)(localize(templateObject_33 || (templateObject_33 = __makeTemplateObject(["command.ohno.alpha"], ["command.ohno.alpha"]))));
             Ohnos.makeOhno(sender.team(), sender.player.x, sender.player.y);
         },
     }), ranks: {
@@ -894,10 +903,10 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
         perm: commands_1.Perm.none,
         handler: function (_a) {
             var output = _a.output, copy = _a.copy, sender = _a.sender, localize = _a.localize;
-            output(localize(templateObject_31 || (templateObject_31 = __makeTemplateObject(["command.ranks.ranklist"], ["command.ranks.ranklist"]))) +
+            output(localize(templateObject_34 || (templateObject_34 = __makeTemplateObject(["command.ranks.ranklist"], ["command.ranks.ranklist"]))) +
                 Object.values(ranks_1.Rank.ranks)
                     .map(function (rank) { return "".concat(copy(rank.prefix), " ").concat(rank.coloredName(sender.locale), ": ").concat(rank.color).concat(rank.getDescription(sender.locale), "[]\n"); })
-                    .join("") + localize(templateObject_32 || (templateObject_32 = __makeTemplateObject(["command.ranks.flaglist"], ["command.ranks.flaglist"]))) +
+                    .join("") + localize(templateObject_35 || (templateObject_35 = __makeTemplateObject(["command.ranks.flaglist"], ["command.ranks.flaglist"]))) +
                 Object.values(ranks_1.RoleFlag.flags)
                     .map(function (flag) { return "".concat(copy(flag.prefix), " ").concat(flag.coloredName(sender.locale), ": ").concat(flag.color).concat(flag.getDescription(sender.locale), "[]\n"); })
                     .join(""));
@@ -912,7 +921,7 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
             var target = (_b = args.player) !== null && _b !== void 0 ? _b : sender;
             if (target !== sender) {
                 if (!sender.hasPerm("warn"))
-                    (0, commands_1.fail)(localize(templateObject_33 || (templateObject_33 = __makeTemplateObject(["command.rules.noperms"], ["command.rules.noperms"]))));
+                    (0, commands_1.fail)(localize(templateObject_36 || (templateObject_36 = __makeTemplateObject(["command.rules.noperms"], ["command.rules.noperms"]))));
                 if (!sender.canModerate(target))
                     commands_1.Req.cooldown(funcs_1.Duration.minutes(10))({ lastUsedSuccessfullySender: lastUsedSuccessfullySender });
                 if (target.hasPerm("blockTrolling"))
@@ -922,15 +931,15 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
                 if (option == "No") {
                     target.kick((0, i18n_1.i18n)("command.rules.kicked", target.locale), 1);
                     if (target !== sender)
-                        outputSuccess(localize(templateObject_34 || (templateObject_34 = __makeTemplateObject(["command.rules.plkicked"], ["command.rules.plkicked"]))));
+                        outputSuccess(localize(templateObject_37 || (templateObject_37 = __makeTemplateObject(["command.rules.plkicked"], ["command.rules.plkicked"]))));
                 }
                 else if (option == null) {
                     if (target !== sender)
-                        output(localize(templateObject_35 || (templateObject_35 = __makeTemplateObject(["command.rules.menuclosed"], ["command.rules.menuclosed"]))));
+                        output(localize(templateObject_38 || (templateObject_38 = __makeTemplateObject(["command.rules.menuclosed"], ["command.rules.menuclosed"]))));
                 }
                 else {
                     if (target !== sender)
-                        outputSuccess(localize(templateObject_36 || (templateObject_36 = __makeTemplateObject(["command.rules.acknowledged"], ["command.rules.acknowledged"]))));
+                        outputSuccess(localize(templateObject_39 || (templateObject_39 = __makeTemplateObject(["command.rules.acknowledged"], ["command.rules.acknowledged"]))));
                 }
             });
             if (target !== sender)
@@ -951,7 +960,7 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
             var args = _a.args, sender = _a.sender, outputSuccess = _a.outputSuccess, f = _a.f, localize = _a.localize;
             if (args.player) {
                 if (!sender.hasPerm("trusted"))
-                    (0, commands_1.fail)(localize(templateObject_37 || (templateObject_37 = __makeTemplateObject(["command.void.noperms"], ["command.void.noperms"]))));
+                    (0, commands_1.fail)(localize(templateObject_40 || (templateObject_40 = __makeTemplateObject(["command.void.noperms"], ["command.void.noperms"]))));
                 if (args.player !== sender && args.player.hasPerm("blockTrolling"))
                     (0, commands_1.fail)("Target player is insufficiently trollable.");
                 void menus_1.Menu.menu((0, i18n_1.i18n)("command.void.menu.title", args.player.locale), (0, i18n_1.i18n)("command.void.menu.description", args.player.locale), [(0, i18n_1.i18n)("command.void.menu.button", args.player.locale)], args.player, { onCancel: 'null' }).then(function () { return outputSuccess(localize("command.void.acknowledged", args.player.name)); });
@@ -970,21 +979,21 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
             var _b;
             var sender = _a.sender, _c = _a.args, team = _c.team, reason = _c.reason, outputSuccess = _a.outputSuccess, f = _a.f, localize = _a.localize;
             if (config_1.Gamemode.sandbox() && globals_1.fishState.peacefulMode && !sender.hasPerm("admin"))
-                (0, commands_1.fail)(localize(templateObject_38 || (templateObject_38 = __makeTemplateObject(["command.team.nopeace"], ["command.team.nopeace"]))));
+                (0, commands_1.fail)(localize(templateObject_41 || (templateObject_41 = __makeTemplateObject(["command.team.nopeace"], ["command.team.nopeace"]))));
             if (config_1.Gamemode.sandbox() && team === Vars.state.rules.waveTeam && !sender.hasPerm("admin"))
-                (0, commands_1.fail)(localize(templateObject_39 || (templateObject_39 = __makeTemplateObject(["command.team.nowave"], ["command.team.nowave"]))));
+                (0, commands_1.fail)(localize(templateObject_42 || (templateObject_42 = __makeTemplateObject(["command.team.nowave"], ["command.team.nowave"]))));
             if (!(config_1.Gamemode.sandbox() || config_1.Gamemode.testsrv()) && !sender.hasPerm("mod") && !reason)
-                (0, commands_1.fail)(localize(templateObject_40 || (templateObject_40 = __makeTemplateObject(["command.team.noreason"], ["command.team.noreason"]))));
+                (0, commands_1.fail)(localize(templateObject_43 || (templateObject_43 = __makeTemplateObject(["command.team.noreason"], ["command.team.noreason"]))));
             if (!sender.hasPerm("changeTeamExternal")) {
                 if (team.data().cores.size <= 0)
-                    (0, commands_1.fail)(localize(templateObject_41 || (templateObject_41 = __makeTemplateObject(["command.team.nocores"], ["command.team.nocores"]))));
+                    (0, commands_1.fail)(localize(templateObject_44 || (templateObject_44 = __makeTemplateObject(["command.team.nocores"], ["command.team.nocores"]))));
                 if (!sender.player.dead() && !((_b = sender.unit()) === null || _b === void 0 ? void 0 : _b.spawnedByCore))
                     sender.forceRespawn();
             }
             if (!sender.hasPerm("mod"))
                 sender.changedTeam = true;
             sender.setTeam(team);
-            outputSuccess(f(templateObject_42 || (templateObject_42 = __makeTemplateObject(["Changed your team to ", "."], ["Changed your team to ", "."])), team));
+            outputSuccess(f(templateObject_45 || (templateObject_45 = __makeTemplateObject(["Changed your team to ", "."], ["Changed your team to ", "."])), team));
             if (reason && !config_1.Gamemode.sandbox())
                 (0, utils_1.logAction)("changed team to ".concat(team.name, " on ").concat((0, funcs_1.escapeTextDiscord)(Vars.state.map.plainName()), " with reason ").concat((0, funcs_1.escapeTextDiscord)(reason)), sender);
         },
@@ -996,7 +1005,7 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
             var _b;
             var sender = _a.sender, _c = _a.args, team = _c.team, target = _c.target, outputSuccess = _a.outputSuccess, f = _a.f;
             if (!sender.canModerate(target, true, "mod", true))
-                (0, commands_1.fail)(f(templateObject_43 || (templateObject_43 = __makeTemplateObject(["You do not have permission to change the team of ", ""], ["You do not have permission to change the team of ", ""])), target));
+                (0, commands_1.fail)(f(templateObject_46 || (templateObject_46 = __makeTemplateObject(["You do not have permission to change the team of ", ""], ["You do not have permission to change the team of ", ""])), target));
             if (config_1.Gamemode.sandbox() && globals_1.fishState.peacefulMode && !sender.hasPerm("admin"))
                 (0, commands_1.fail)("You do not have permission to change teams because peaceful mode is on.");
             if (!sender.hasPerm("changeTeamExternal")) {
@@ -1006,7 +1015,7 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
                     target.forceRespawn();
             }
             target.setTeam(team);
-            outputSuccess(f(templateObject_44 || (templateObject_44 = __makeTemplateObject(["Changed team of player ", " to ", "."], ["Changed team of player ", " to ", "."])), target, team));
+            outputSuccess(f(templateObject_47 || (templateObject_47 = __makeTemplateObject(["Changed team of player ", " to ", "."], ["Changed team of player ", " to ", "."])), target, team));
         },
     }, rank: {
         args: ['player:player'],
@@ -1014,7 +1023,7 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
         perm: commands_1.Perm.none,
         handler: function (_a) {
             var args = _a.args, output = _a.output, f = _a.f;
-            output(f(templateObject_45 || (templateObject_45 = __makeTemplateObject(["Player ", "'s rank is ", "."], ["Player ", "'s rank is ", "."])), args.player, args.player.rank));
+            output(f(templateObject_48 || (templateObject_48 = __makeTemplateObject(["Player ", "'s rank is ", "."], ["Player ", "'s rank is ", "."])), args.player, args.player.rank));
         },
     }, forcevnw: {
         args: ["force:boolean?"],
@@ -1117,8 +1126,8 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
                 .on("success", function () { return (0, utils_1.neutralGameover)(); })
                 .on("vote passed", function () { return (0, i18n_1.sendLocalizedMessage)("command.rtv.passed"); })
                 .on("vote failed", function () { return (0, i18n_1.sendLocalizedMessage)("command.rtv.failed"); })
-                .on("player vote change", function (t, player, oldVote, newVote) { return Groups.player.each(function (p) { return p.sendMessage((0, i18n_1.i18n)("command.rtv.voted", p.locale, player.name, oldVote == newVote ? (0, i18n_1.i18n)("command.rtv.oldvote", p.locale) : "", t.currentVotes(), t.requiredVotes())); }); })
-                .on("player vote removed", function (t, player) { return Groups.player.each(function (p) { return p.sendMessage((0, i18n_1.i18n)("command.rtv.removed", p.locale, player.name, t.currentVotes(), t.requiredVotes())); }); })
+                .on("player vote change", function (t, player, oldVote, newVote) { return (0, i18n_1.sendLocMessageCB)("command.rtv.voted", function (locale, localize) { return [player.name, oldVote == newVote ? localize("command.rtv.oldvote", []) : "", t.currentVotes(), t.requiredVotes()]; }); })
+                .on("player vote removed", function (t, player) { return (0, i18n_1.sendLocalizedMessage)("command.rtv.removed", player.name, t.currentVotes(), t.requiredVotes()); })
         }); },
         requirements: [commands_1.Req.cooldown(10000), commands_1.Req.gameRunning],
         handler: function (_a) {
@@ -1164,7 +1173,7 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
                 Call.sendMessage("[red]Admin ".concat(sender.name, "[red] has cancelled the vote. The next map will be ").concat(args.map == "random" ? "random" : "[yellow]".concat(args.map.name()), "."));
             }
             else {
-                outputSuccess(f(templateObject_46 || (templateObject_46 = __makeTemplateObject(["Forced the next map to be ", "."], ["Forced the next map to be ", "."])), args.map == "random" ? "random" : "\"".concat(args.map.name(), "\" by ").concat(args.map.author())));
+                outputSuccess(f(templateObject_49 || (templateObject_49 = __makeTemplateObject(["Forced the next map to be ", "."], ["Forced the next map to be ", "."])), args.map == "random" ? "random" : "\"".concat(args.map.name(), "\" by ").concat(args.map.author())));
             }
         },
     }, maps: {
@@ -1269,7 +1278,8 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
                 }
                 else {
                     votes.set(sender, map);
-                    Groups.player.each(function (p) { return p.sendMessage((0, i18n_1.i18n)("command.nextmap.voted", p.locale, sender.name, map.name(), (0, utils_1.formatTimeRelativeLocalize)(voteEndTime, p.locale, true))); });
+                    // Groups.player.each(p => p.sendMessage(i18n("command.nextmap.voted", p.locale, sender.name, map.name(), formatTimeRelativeLocalize(voteEndTime, p.locale, true))));
+                    (0, i18n_1.sendLocMessageCB)("command.nextmap.voted", function (locale) { return [sender.name, map.name(), (0, utils_1.formatTimeRelativeLocalize)(voteEndTime, locale, true)]; });
                     showVotes();
                 }
             }
@@ -1356,7 +1366,7 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
                             _e.label = 2;
                         case 2:
                             stats = global ? target.globalStats : target.stats;
-                            output(f(templateObject_47 || (templateObject_47 = __makeTemplateObject(["[accent]Statistics for player ", " ", ":\n(note: we started recording statistics on 22 Jan 2024)\n[white]--------------[]\nBlocks broken: ", "\nBlocks placed: ", "\nChat messages sent: ", "\nGames finished: ", "\nTime in-game: ", "\nWin rate: ", ""], ["[accent]\\\nStatistics for player ", " ", ":\n(note: we started recording statistics on 22 Jan 2024)\n[white]--------------[]\nBlocks broken: ", "\nBlocks placed: ", "\nChat messages sent: ", "\nGames finished: ", "\nTime in-game: ", "\nWin rate: ", ""])), target, global ? "across all servers" : "on this server", stats.blocksBroken, stats.blocksPlaced, stats.chatMessagesSent, stats.gamesFinished, (0, utils_1.formatTime)(stats.timeInGame), stats.gamesWon / stats.gamesFinished));
+                            output(f(templateObject_50 || (templateObject_50 = __makeTemplateObject(["[accent]Statistics for player ", " ", ":\n(note: we started recording statistics on 22 Jan 2024)\n[white]--------------[]\nBlocks broken: ", "\nBlocks placed: ", "\nChat messages sent: ", "\nGames finished: ", "\nTime in-game: ", "\nWin rate: ", ""], ["[accent]\\\nStatistics for player ", " ", ":\n(note: we started recording statistics on 22 Jan 2024)\n[white]--------------[]\nBlocks broken: ", "\nBlocks placed: ", "\nChat messages sent: ", "\nGames finished: ", "\nTime in-game: ", "\nWin rate: ", ""])), target, global ? "across all servers" : "on this server", stats.blocksBroken, stats.blocksPlaced, stats.chatMessagesSent, stats.gamesFinished, (0, utils_1.formatTime)(stats.timeInGame), stats.gamesWon / stats.gamesFinished));
                             return [2 /*return*/];
                     }
                 });
@@ -1465,7 +1475,7 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
             unit.maxHealth = args.type.health; //because half-dead units aren't fun
             unit.set(x, y);
             unit.add();
-            outputSuccess(f(templateObject_48 || (templateObject_48 = __makeTemplateObject(["Spawned a ", " that is partly a ", "."], ["Spawned a ", " that is partly a ", "."])), args.type, args.base));
+            outputSuccess(f(templateObject_51 || (templateObject_51 = __makeTemplateObject(["Spawned a ", " that is partly a ", "."], ["Spawned a ", " that is partly a ", "."])), args.type, args.base));
         }
     }, achievement: {
         args: ["name:string?", "verbose:boolean?"],
@@ -1483,7 +1493,7 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
                             if (matching.length == 0)
                                 (0, commands_1.fail)(localize("command.achievement.notfound", name));
                             if (!(matching.length > 2)) return [3 /*break*/, 2];
-                            return [4 /*yield*/, menus_1.Menu.pagedList(sender, localize(templateObject_49 || (templateObject_49 = __makeTemplateObject(["command.achievement.menu.title"], ["command.achievement.menu.title"]))), localize(templateObject_50 || (templateObject_50 = __makeTemplateObject(["command.achievement.menu.description"], ["command.achievement.menu.description"]))), matching, {
+                            return [4 /*yield*/, menus_1.Menu.pagedList(sender, localize(templateObject_52 || (templateObject_52 = __makeTemplateObject(["command.achievement.menu.title"], ["command.achievement.menu.title"]))), localize(templateObject_53 || (templateObject_53 = __makeTemplateObject(["command.achievement.menu.description"], ["command.achievement.menu.description"]))), matching, {
                                     onCancel: "reject",
                                     columns: 2,
                                     optionStringifier: function (a) { return "".concat(a.icon, "[] ").concat(a.name); }
@@ -1517,7 +1527,7 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
                         case 0: return [4 /*yield*/, menus_1.Menu.textPages(sender, achievements_1.Achievement.all.filter(function (a) { return !a.hidden || a.has(target); })
                                 .map(function (a) { return [
                                 "".concat(a.icon, "[] ").concat(a.name),
-                                function () { return config_1.FColor.achievement(templateObject_51 || (templateObject_51 = __makeTemplateObject(["", "\nAllowed modes: ", "\nUnlocked: ", "\n", ""], ["\\\n", "\nAllowed modes: ", "\nUnlocked: ", "\n", "\\\n"])), a.description + (a.extendedDescription ? ("\n" + "[gray]".concat(a.extendedDescription)) : ""), a.modesText, f.boolGood(a.has(target)), a.hidden ? "This achievement is secret." : ""); }
+                                function () { return config_1.FColor.achievement(templateObject_54 || (templateObject_54 = __makeTemplateObject(["", "\nAllowed modes: ", "\nUnlocked: ", "\n", ""], ["\\\n", "\nAllowed modes: ", "\nUnlocked: ", "\n", "\\\n"])), a.description + (a.extendedDescription ? ("\n" + "[gray]".concat(a.extendedDescription)) : ""), a.modesText, f.boolGood(a.has(target)), a.hidden ? "This achievement is secret." : ""); }
                             ]; }))];
                         case 1:
                             _d.sent();
@@ -1550,9 +1560,9 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
                             _e.label = 1;
                         case 1:
                             if (!true) return [3 /*break*/, 3];
-                            return [4 /*yield*/, menus_1.Menu.scroll2D(sender, "Achievements", a ? config_1.FColor.achievement(templateObject_52 || (templateObject_52 = __makeTemplateObject(["", " ", "\n\n", "\n\nAllowed modes: ", "\nUnlocked: ", "\n", ""], ["\\\n", " ", "\n\n", "\n\nAllowed modes: ", "\nUnlocked: ", "\n", "\\\n"])), a.icon, a.name, a.description + (a.extendedDescription ? ("\n" + "[gray]".concat(a.extendedDescription)) : ""), a.modesText, f.boolGood(a.has(target)), a.hidden ? "This achievement is secret." : "") :
+                            return [4 /*yield*/, menus_1.Menu.scroll2D(sender, "Achievements", a ? config_1.FColor.achievement(templateObject_55 || (templateObject_55 = __makeTemplateObject(["", " ", "\n\n", "\n\nAllowed modes: ", "\nUnlocked: ", "\n", ""], ["\\\n", " ", "\n\n", "\n\nAllowed modes: ", "\nUnlocked: ", "\n", "\\\n"])), a.icon, a.name, a.description + (a.extendedDescription ? ("\n" + "[gray]".concat(a.extendedDescription)) : ""), a.modesText, f.boolGood(a.has(target)), a.hidden ? "This achievement is secret." : "") :
                                     (target == sender ? "You have ".concat(numberAchievements, "/").concat(totalAchievements, " achievements.")
-                                        : config_1.FColor.achievement(templateObject_53 || (templateObject_53 = __makeTemplateObject(["Player ", " has ", "/", " achievements."], ["Player ", " has ", "/", " achievements."])), target.prefixedName, numberAchievements, totalAchievements))
+                                        : config_1.FColor.achievement(templateObject_56 || (templateObject_56 = __makeTemplateObject(["Player ", " has ", "/", " achievements."], ["Player ", " has ", "/", " achievements."])), target.prefixedName, numberAchievements, totalAchievements))
                                         + "\nClick an achievement icon to show more information.", options, { onCancel: "reject", columns: 5, rows: 4, getCenterText: function () { return String.fromCharCode(Iconc.settings); }, x: x, y: y })];
                         case 2:
                             //the loop will be aborted if the menu is cancelled (promise will reject)
@@ -1578,14 +1588,14 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
                 duration !== null && duration !== void 0 ? duration : (duration = funcs_1.Duration.minutes(2));
             }
             if (duration > funcs_1.Duration.hours(8))
-                (0, commands_1.fail)(localize(templateObject_54 || (templateObject_54 = __makeTemplateObject(["command.skipconfirm.maxduration"], ["command.skipconfirm.maxduration"]))));
+                (0, commands_1.fail)(localize(templateObject_57 || (templateObject_57 = __makeTemplateObject(["command.skipconfirm.maxduration"], ["command.skipconfirm.maxduration"]))));
             sender.skipConfirm = Date.now() + duration;
             if (Date.now() < sender.skipConfirm)
                 outputSuccess(localize("command.skipconfirm.success", (0, utils_1.formatTimeLocalize)(duration, sender.locale)));
             else
                 outputSuccess("Re-enabled confirm popups.");
             if (duration > funcs_1.Duration.hours(1))
-                output(localize(templateObject_55 || (templateObject_55 = __makeTemplateObject(["command.skipconfirm.warning"], ["command.skipconfirm.warning"]))));
+                output(localize(templateObject_58 || (templateObject_58 = __makeTemplateObject(["command.skipconfirm.warning"], ["command.skipconfirm.warning"]))));
         }
     }, copy: {
         args: [],
@@ -1599,18 +1609,18 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
                     switch (_d.label) {
                         case 0:
                             if (!sender.copyOptions || sender.copyOptions.length == 0)
-                                (0, commands_1.fail)(localize(templateObject_56 || (templateObject_56 = __makeTemplateObject(["command.copy.nothing"], ["command.copy.nothing"]))));
+                                (0, commands_1.fail)(localize(templateObject_59 || (templateObject_59 = __makeTemplateObject(["command.copy.nothing"], ["command.copy.nothing"]))));
                             if (!(sender.copyOptions.length == 1)) return [3 /*break*/, 1];
                             _c = sender.copyOptions[0];
                             return [3 /*break*/, 3];
-                        case 1: return [4 /*yield*/, menus_1.Menu.pagedList(sender, localize(templateObject_57 || (templateObject_57 = __makeTemplateObject(["command.copy.menu.title"], ["command.copy.menu.title"]))), localize(templateObject_58 || (templateObject_58 = __makeTemplateObject(["command.copy.menu.description"], ["command.copy.menu.description"]))), sender.copyOptions, { optionStringifier: funcs_1.escapeStringColorsClient, columns: 1 })];
+                        case 1: return [4 /*yield*/, menus_1.Menu.pagedList(sender, localize(templateObject_60 || (templateObject_60 = __makeTemplateObject(["command.copy.menu.title"], ["command.copy.menu.title"]))), localize(templateObject_61 || (templateObject_61 = __makeTemplateObject(["command.copy.menu.description"], ["command.copy.menu.description"]))), sender.copyOptions, { optionStringifier: funcs_1.escapeStringColorsClient, columns: 1 })];
                         case 2:
                             _c = _d.sent();
                             _d.label = 3;
                         case 3:
                             response = _c;
                             Call.copyToClipboard(sender.con(), response);
-                            outputSuccess(localize(templateObject_59 || (templateObject_59 = __makeTemplateObject(["command.copy.success"], ["command.copy.success"]))));
+                            outputSuccess(localize(templateObject_62 || (templateObject_62 = __makeTemplateObject(["command.copy.success"], ["command.copy.success"]))));
                             return [2 /*return*/];
                     }
                 });
@@ -1625,7 +1635,7 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
             var _b = _a.args, target = _b.target, string = _b.string, sender = _a.sender, f = _a.f, outputSuccess = _a.outputSuccess;
             Call.copyToClipboard(target.con(), string);
             target.sendMessage("[accent]Copy: ".concat(sender.prefixedName, "[accent] sent you some text to copy."));
-            outputSuccess(f(templateObject_60 || (templateObject_60 = __makeTemplateObject(["Sent text to ", ""], ["Sent text to ", ""])), target));
+            outputSuccess(f(templateObject_63 || (templateObject_63 = __makeTemplateObject(["Sent text to ", ""], ["Sent text to ", ""])), target));
         }
     } }));
-var templateObject_1, templateObject_2, templateObject_3, templateObject_4, templateObject_5, templateObject_6, templateObject_7, templateObject_8, templateObject_9, templateObject_10, templateObject_11, templateObject_12, templateObject_13, templateObject_14, templateObject_15, templateObject_16, templateObject_17, templateObject_18, templateObject_19, templateObject_20, templateObject_21, templateObject_22, templateObject_23, templateObject_24, templateObject_25, templateObject_26, templateObject_27, templateObject_28, templateObject_29, templateObject_30, templateObject_31, templateObject_32, templateObject_33, templateObject_34, templateObject_35, templateObject_36, templateObject_37, templateObject_38, templateObject_39, templateObject_40, templateObject_41, templateObject_42, templateObject_43, templateObject_44, templateObject_45, templateObject_46, templateObject_47, templateObject_48, templateObject_49, templateObject_50, templateObject_51, templateObject_52, templateObject_53, templateObject_54, templateObject_55, templateObject_56, templateObject_57, templateObject_58, templateObject_59, templateObject_60;
+var templateObject_1, templateObject_2, templateObject_3, templateObject_4, templateObject_5, templateObject_6, templateObject_7, templateObject_8, templateObject_9, templateObject_10, templateObject_11, templateObject_12, templateObject_13, templateObject_14, templateObject_15, templateObject_16, templateObject_17, templateObject_18, templateObject_19, templateObject_20, templateObject_21, templateObject_22, templateObject_23, templateObject_24, templateObject_25, templateObject_26, templateObject_27, templateObject_28, templateObject_29, templateObject_30, templateObject_31, templateObject_32, templateObject_33, templateObject_34, templateObject_35, templateObject_36, templateObject_37, templateObject_38, templateObject_39, templateObject_40, templateObject_41, templateObject_42, templateObject_43, templateObject_44, templateObject_45, templateObject_46, templateObject_47, templateObject_48, templateObject_49, templateObject_50, templateObject_51, templateObject_52, templateObject_53, templateObject_54, templateObject_55, templateObject_56, templateObject_57, templateObject_58, templateObject_59, templateObject_60, templateObject_61, templateObject_62, templateObject_63;

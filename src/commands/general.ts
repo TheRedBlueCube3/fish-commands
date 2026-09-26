@@ -8,7 +8,7 @@ import * as api from "/api";
 import { FColor, FishServer, Gamemode, text } from "/config";
 import { command, commandList, fail, formatArg, Perm, PermCategory, Req } from "/frameworks/commands";
 import type { FishCommandData } from "/frameworks/commands/types";
-import { AddedBundle, i18n, keyExists, sendLocalizedMessage } from "/frameworks/i18n";
+import { AddedBundle, i18n, keyExists, sendLocalizedMessage, sendLocMessageCB } from "/frameworks/i18n";
 import { Menu } from "/frameworks/menus";
 import { capitalizeText, crash, delay, Duration, escapeStringColorsClient, escapeTextDiscord, StringBuilder, StringIO, tagProcessorPartial, to2DArray } from "/funcs";
 import { FishEvents, fishPlugin, fishState, ipPortPattern, recentWhispers, tileHistory, uuidPattern } from "/globals";
@@ -200,18 +200,19 @@ export const commands = commandList({
 				...h,
 				info: uuidPattern.test(h.uuid) ? player(admins.getInfoOptional(h.uuid)) : null,
 			}));
-			output(`[yellow]Tile history for tile (${tile.x}, ${tile.y}):\n` + history.map(e =>
-				e.info ?
-					(sender.hasPerm("viewUUIDs") && data.showUUID ?
-						`[yellow]${copy(e.info.plainLastName())}[lightgray](${copy(e.uuid)})[yellow] ${e.action} a [cyan]${e.type}[] ${formatTimeRelative(e.time)}`
-					: `[yellow]${copy(e.info.plainLastName())} ${e.action} a [cyan]${e.type}[] ${formatTimeRelative(e.time)}`)
-				: `[yellow]${e.uuid}[yellow] ${e.action} a [cyan]${e.type}[] ${formatTimeRelative(e.time)}`
-			).join('\n'));
+			// output(`[yellow]Tile history for tile (${tile.x}, ${tile.y}):\n` + history.map(e =>
+				// e.info ?
+					// (sender.hasPerm("viewUUIDs") && data.showUUID ?
+						// `[yellow]${copy(e.info.plainLastName())}[lightgray](${copy(e.uuid)})[yellow] ${e.action} a [cyan]${e.type}[] ${formatTimeRelative(e.time)}`
+					// : `[yellow]${copy(e.info.plainLastName())} ${e.action} a [cyan]${e.type}[] ${formatTimeRelative(e.time)}`)
+				// : `[yellow]${e.uuid}[yellow] ${e.action} a [cyan]${e.type}[] ${formatTimeRelative(e.time)}`
+			// ).join('\n'));
+			output(i18n("command.tilelog.history", sender.locale, tile.x, tile.y) + history.map(e => e.info ? (sender.hasPerm("viewUUIDs") && data.showUUID ? i18n("command.tilelog.histentryuuid", sender.locale, copy(e.info.plainLastName()), copy(e.uuid), i18n(`command.tilelog.action.${e.action ? e.action.replace(" ", "").replace("-","") : ""}`, sender.locale), e.type, formatTimeRelativeLocalize(e.time, sender.locale)) : i18n("command.tilelog.histentrynouuid", sender.locale, copy(e.info.plainLastName()), i18n(`command.tilelog.action.${e.action ? e.action.replace(" ", "").replace("-","") : ""}`, sender.locale), e.type, formatTimeRelativeLocalize(e.time, sender.locale))) : i18n("command.tilelog.histentrynoinfo", sender.locale, e.uuid, i18n(`command.tilelog.action.${e.action ? e.action.replace(" ", "").replace("-","") : ""}`, sender.locale), e.type, formatTimeRelativeLocalize(e.time, sender.locale))).join('\n'));
 		}
 	}),
 
 	aoelog: command(() => {
-		const allowedActions = [
+		let allowedActions = [
 			"built", "broke", "rotated", "killed", "configured", "pay-dropped", "picked up", "controlled"
 		];
 		const cachedPointMap = Object.create(null) as Partial<Record<string, [number, number]>>;
@@ -219,18 +220,19 @@ export const commands = commandList({
 			args: ['persist:boolean?', 'amount:number?', 'action:string?'],
 			description: 'Checks the history of all tiles in the selected region. Can be filtered by action.',
 			perm: Perm.none,
-			handler({args, sender, outputSuccess, currentTapMode, handleTaps}) {
+			handler({args, sender, outputSuccess, currentTapMode, handleTaps, localize}) {
+				allowedActions = allowedActions.map(a => i18n(`command.tilelog.action.${a ? a.replace(" ", "").replace("-","") : ""}`, sender.locale));
 				if(currentTapMode === "off" || args.action || args.amount) {
 					if(args.action && !allowedActions.includes(args.action))
-						fail(`Invalid action. Allowed actions: ${allowedActions.join(", ")}`);
-					if(args.amount && args.amount > 100) fail(`Limit cannot be greater than 100.`);
+						fail(localize(`command.aoelog.invalid`, allowedActions.join(",  ")));
+					if(args.amount && args.amount > 100) fail(localize`command.aoelog.toobiglimit`);
 
 					cachedPointMap[sender.uuid] = undefined;
 					handleTaps("on");
-					outputSuccess(`Aoelog mode enabled. To see the recent history of all tiles in a rectangular region, tap opposite corners of the rectangle. Run /aoelog with no arguments to disable.`);
+					outputSuccess(localize`command.aoelog.enabled`);
 				} else {
 					handleTaps("off");
-					outputSuccess(`Aoelog disabled.`);
+					outputSuccess(localize`command.aoelog.disabled`);
 				}
 			},
 			tapped({x, y, output, outputFail, copy, player, sender, admins, handleTaps, args}) {
@@ -269,22 +271,22 @@ export const commands = commandList({
 						}
 					}
 					if(limitTiles == 0){
-						if(args.action) outputFail(`There is no recorded history for the selected region matching the provided filters.`);
-						else outputFail(`There is no recorded history for the selected region.`);
+						if(args.action) outputFail(i18n(`command.aoelog.nofilthist`, sender.locale));
+						else outputFail(i18n(`command.aoelog.nohist`, sender.locale));
 					}
 					if(limitTiles == amount)
-						output(`Displaying first ${limitTiles} entries. To show other entries, increase the limit or select a smaller area.`);
+						output(i18n(`command.aoelog.firstentries`, sender.locale, limitTiles));
 				}
 				const p1 = cachedPointMap[sender.uuid];
 				if(!p1){
 					cachedPointMap[sender.uuid] = [x, y];
-					output(`1st point set at (${x},${y})`);
+					output(i18n("command.aoelog.first", sender.locale, x, y));
 				} else {
 					const p2 = [x, y] as [number, number];
-					output(`2nd point set at (${x}, ${y})`);
+					output(i18n("command.aoelog.second", sender.locale, x, y));
 					const width = Math.abs(p1[0] - p2[0]);
 					const height = Math.abs(p1[1] - p2[1]);
-					if(width > 50 || height > 50) fail("Selection too large: width/height cannot be more than 50.");
+					if(width > 50 || height > 50) fail(i18n("command.aoelog.seltoobig", sender.locale));
 					handleArea(p1, p2);
 					cachedPointMap[sender.uuid] = undefined;
 					if(!args.persist) handleTaps("off");
@@ -351,10 +353,18 @@ export const commands = commandList({
 				isHidden: true,
 				handler({ sender, lastUsedSuccessfullySender }) {
 					if(Date.now() - lastUsedSuccessfullySender > Duration.minutes(1))
-						FishPlayer.locMessageAllWithPerm(server.requiredPerm,
-							// `${sender.name}[magenta] has gone to the ${server.name} server. Use [cyan]/${server.name} [magenta]to join them!`
-							`command.server.hasswitched`, sender.name, server.name
-						);
+					{
+						const perm = server.requiredPerm; // THANKS TYPESCRIPT
+						if(perm)
+						{
+							FishPlayer.forEachPlayer(fishP => {
+								if(fishP.hasPerm(perm)) 
+									fishP.sendMessage(i18n("command.server.hasswitched", fishP.locale, sender.name, i18n(server.name, fishP.locale), server.name));
+							});
+						}
+						else
+							sendLocMessageCB("command.server.hasswitched", (_, localize) => [sender.name, localize(server.name, []), server.name]);
+					}
 					Call.connect(sender.con(), server.ip, server.port);
 				},
 			} satisfies FishCommandData<string, any>,
@@ -879,8 +889,8 @@ export const commands = commandList({
 				.on("success", () => neutralGameover())
 				.on("vote passed", () => sendLocalizedMessage("command.rtv.passed"))
 				.on("vote failed", () => sendLocalizedMessage("command.rtv.failed"))
-				.on("player vote change", (t, player, oldVote, newVote) => Groups.player.each(p=>p.sendMessage(i18n("command.rtv.voted", p.locale, player.name, oldVote == newVote ? i18n("command.rtv.oldvote",p.locale) : "", t.currentVotes(), t.requiredVotes()))))
-				.on("player vote removed", (t, player) => Groups.player.each(p=>p.sendMessage(i18n("command.rtv.removed", p.locale, player.name, t.currentVotes(), t.requiredVotes()))))
+				.on("player vote change", (t, player, oldVote, newVote) => sendLocMessageCB("command.rtv.voted", (locale, localize) => [player.name, oldVote == newVote ? localize("command.rtv.oldvote", []) : "", t.currentVotes(), t.requiredVotes()]))
+				.on("player vote removed", (t, player) => sendLocalizedMessage("command.rtv.removed", player.name, t.currentVotes(), t.requiredVotes()))
 		}),
 		requirements: [Req.cooldown(10000), Req.gameRunning],
 		handler({sender, data:{manager}}){
@@ -1044,7 +1054,8 @@ ${Vars.maps.customMaps().toArray().map(map =>
 					sendLocalizedMessage(`command.nextmap.started`, sender.name, map.name(), map.plainName());
 				} else {
 					votes.set(sender, map);
-					Groups.player.each(p => p.sendMessage(i18n("command.nextmap.voted", p.locale, sender.name, map.name(), formatTimeRelativeLocalize(voteEndTime, p.locale, true))));
+					// Groups.player.each(p => p.sendMessage(i18n("command.nextmap.voted", p.locale, sender.name, map.name(), formatTimeRelativeLocalize(voteEndTime, p.locale, true))));
+					sendLocMessageCB("command.nextmap.voted", locale => [sender.name, map.name(), formatTimeRelativeLocalize(voteEndTime, locale, true)]);
 					showVotes();
 				}
 			}
