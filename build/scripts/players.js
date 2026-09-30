@@ -414,7 +414,6 @@ var FishPlayer = /** @class */ (function () {
             fishP.updateAdminStatus();
             fishP.updateAutoflaggedStatus();
             fishP.sendWelcomeMessage();
-            // if(fishP?.player) fishP.player.sendMessage(i18n("dataFetchFailed", fishP.player.locale));
             if (fishP === null || fishP === void 0 ? void 0 : fishP.player)
                 fishP.sendLocalizedMessage("dataFetchFailed");
             else
@@ -820,7 +819,7 @@ var FishPlayer = /** @class */ (function () {
             if (!_this.ignoreGameOver && fishPlayer.team() != Team.derelict && winningTeam != Team.derelict) {
                 fishPlayer.updateStats(function (stats) { return stats.gamesFinished++; });
                 if (fishPlayer.changedTeam) {
-                    fishPlayer.sendMessage("Refusing to update stats due to a team change.");
+                    fishPlayer.sendLocalizedMessage("self.nostatsupdate");
                 }
                 else {
                     if (fishPlayer.team() == winningTeam)
@@ -947,7 +946,7 @@ var FishPlayer = /** @class */ (function () {
     /** Checks if this player's name is allowed. */
     FishPlayer.prototype.checkName = function () {
         if ((0, utils_1.matchFilter)(this.name, "name")) {
-            this.kick("[scarlet]\"".concat(this.name, "[scarlet]\" is not an allowed name because it contains a banned word.\n\nIf you are unable to change it, please download Mindustry from Steam or itch.io."), 1);
+            this.kick((0, i18n_1.i18n)("self.kicked.badname", this.locale), 1);
         }
         else {
             //Non-critical invalid names
@@ -958,15 +957,15 @@ var FishPlayer = /** @class */ (function () {
             var cleanedName = Strings.stripColors(this.name.replace(/[\u3164]/g, "")).trim();
             if (cleanedName.length == 0 || cleanedName == ".") {
                 this.setName(this.randomName());
-                this.sendMessage("[orange]Your name was determined to be empty, so it has been replaced with a randomly generated one. To change it, please disconnect and set your name to something that is not empty.");
+                this.sendLocalizedMessage("self.namechange.emptyname");
             }
             if (this.cleanedName.startsWith("@")) {
                 this.setName(this.name.replace(/^@/, "(@)"));
-                this.sendMessage("[orange]Names may not begin with the @ sign, because it is used for commands. Your name has been edited slightly.");
+                this.sendLocalizedMessage("self.namechange.selector");
             }
             if (this.cleanedName.includes("\"")) {
                 this.setName(this.name.replace(/"/g, "'"));
-                this.sendMessage("[orange]Your name may not contain double quotes, because they are used for commands. Your name has been edited slightly.");
+                this.sendLocalizedMessage("self.namechange.doublequote");
             }
             return true;
         }
@@ -982,7 +981,7 @@ var FishPlayer = /** @class */ (function () {
                 if (this.hasPerm("mod")) {
                     //Staff missing USID, don't let them in
                     Log.err("&rUSID missing for privileged player &c\"".concat(this.cleanedName, "\"&r: no stored usid, cannot authenticate.\nRun &lgsetusid ").concat(this.uuid, " ").concat(receivedUSID, "&fr if you have verified this connection attempt."));
-                    this.kick("Authorization failure! Please ask a staff member with Console Access to approve this connection.", 1);
+                    this.kick((0, i18n_1.i18n)("self.kicked.auth.mod", this.locale), 1);
                     FishPlayer.lastAuthKicked = this;
                     return false;
                 }
@@ -993,7 +992,7 @@ var FishPlayer = /** @class */ (function () {
             else {
                 if (receivedUSID != storedUSID) {
                     Log.err("&rUSID mismatch for player &c\"".concat(this.cleanedName, "\"&r: stored usid is &c").concat(storedUSID, "&r, but they tried to connect with usid &c").concat(receivedUSID, "&r\nRun &lgsetusid ").concat(this.uuid, " ").concat(receivedUSID, "&fr if you have verified this connection attempt."));
-                    this.kick("Authorization failure!", 1);
+                    this.kick((0, i18n_1.i18n)("self.kicked.auth", this.locale), 1);
                     FishPlayer.lastAuthKicked = this;
                     return false;
                 }
@@ -1327,11 +1326,36 @@ var FishPlayer = /** @class */ (function () {
         });
         return messageReceived;
     };
+    FishPlayer.locMessageStaff = function (arg1, arg2, wasStaff) {
+        var messageReceived = false;
+        Groups.player.each(function (pl) {
+            var fishP = FishPlayer.get(pl);
+            if (fishP.hasPerm("mod")) {
+                if (typeof arg2 == 'string') {
+                    pl.sendMessage((0, i18n_1.i18n)(wasStaff ? "server.staff.staffmsg" : "server.staff.playermsg", pl.locale, arg1, arg2));
+                }
+                else
+                    pl.sendMessage(i18n_1.i18n.apply(void 0, __spreadArray([arg1, pl.locale], __read(arg2), false)));
+                messageReceived = true;
+            }
+        });
+        return messageReceived;
+    };
     FishPlayer.messageTrusted = function (arg1, arg2) {
-        var message = arg2 ? "[gray]<[".concat(ranks_1.Rank.trusted.color, "]trusted[gray]>[white]").concat(arg1, "[green]: [cyan]").concat(arg2) : arg1;
+        var message = arg2 ? "[gray]<".concat(ranks_1.Rank.trusted.color, "trusted[gray]>[white]").concat(arg1, "[green]: [cyan]").concat(arg2) : arg1;
         FishPlayer.forEachPlayer(function (fishP) {
             if (fishP.ranksAtLeast("trusted"))
                 fishP.sendMessage(message);
+        });
+    };
+    FishPlayer.locMessageTrusted = function (arg1, arg2) {
+        FishPlayer.forEachPlayer(function (fishP) {
+            if (fishP.ranksAtLeast("trusted")) {
+                if (typeof arg2 == 'string')
+                    fishP.sendMessage((0, i18n_1.i18n)("server.trusted.msg", fishP.locale, ranks_1.Rank.trusted.color, arg1, arg2));
+                else
+                    fishP.sendMessage(i18n_1.i18n.apply(void 0, __spreadArray([arg1, fishP.locale], __read(arg2), false)));
+            }
         });
     };
     FishPlayer.messageMuted = function (arg1, arg2) {
@@ -1341,6 +1365,20 @@ var FishPlayer = /** @class */ (function () {
             var fishP = FishPlayer.get(pl);
             if (fishP.hasPerm("seeMutedMessages")) {
                 pl.sendMessage(message);
+                messageReceived = true;
+            }
+        });
+        return messageReceived;
+    };
+    FishPlayer.locMessageMuted = function (arg1, arg2) {
+        var messageReceived = false;
+        Groups.player.each(function (pl) {
+            var fishP = FishPlayer.get(pl);
+            if (fishP.hasPerm("seeMutedMessages")) {
+                if (typeof arg2 == 'string')
+                    pl.sendMessage((0, i18n_1.i18n)("server.muted.msg", pl.locale, arg1, arg2));
+                else
+                    pl.sendMessage(i18n_1.i18n.apply(void 0, __spreadArray([arg1, pl.locale], __read(arg2), false)));
                 messageReceived = true;
             }
         });
@@ -1472,7 +1510,7 @@ var FishPlayer = /** @class */ (function () {
     };
     FishPlayer.prototype.showRules = function (options) {
         if (options === void 0) { options = []; }
-        return menus_1.Menu.menu("Rules for [#0000ff] >|||> FISH [white] servers [white]", config_1.rules.join("\n\n[white]") + "\nYou can view these rules again by running [cyan]/rules[].", __spreadArray(["[green]I agree to abide by these rules"], __read(options), false), this, { onCancel: "null" });
+        return menus_1.Menu.menu((0, i18n_1.i18n)("welcome.rules.menu.title", this.locale), config_1.rules.join("\n\n[white]") + (0, i18n_1.i18n)("welcome.rules.menu.viewagain", this.locale), __spreadArray([(0, i18n_1.i18n)("welcome.rules.agree", this.locale)], __read(options), false), this, { onCancel: "null" });
     };
     FishPlayer.prototype.hasFlag = function (flagName) {
         var flag = ranks_1.RoleFlag.getByName(flagName);
@@ -1589,7 +1627,7 @@ var FishPlayer = /** @class */ (function () {
                 //Only run the code if the unmark time hasn't changed
                 _this.forceRespawn();
                 _this.updateName();
-                _this.sendMessage("[yellow]Your mark has automatically expired.");
+                _this.sendLocalizedMessage("self.stopped.expired");
             }
         }, duration / 1000);
     };
@@ -1601,7 +1639,7 @@ var FishPlayer = /** @class */ (function () {
                 //Only run the code if the unmark time hasn't changed
                 //Otherwise, a different timer will do it
                 _this.updateName();
-                _this.sendMessage("[yellow]Your mute has automatically expired.");
+                _this.sendLocalizedMessage("self.muted.expired");
             }
         }, duration / 1000);
     };

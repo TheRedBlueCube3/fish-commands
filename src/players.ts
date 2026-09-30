@@ -1080,7 +1080,7 @@ export class FishPlayer<Connected extends boolean = boolean> {
 		const message = arg2 ?
 			wasStaff ? `[#696969]<[cyan]staff[#696969]>[white]${arg1}[green]: [cyan]${arg2}`
 			: `[#696969]<[tan]player[#696969]>${arg1}[tan]: [tan]${arg2}`
-		: arg1;
+		: arg1;	
 		let messageReceived = false;
 		Groups.player.each(pl => {
 			const fishP = FishPlayer.get(pl);
@@ -1092,14 +1092,51 @@ export class FishPlayer<Connected extends boolean = boolean> {
 		return messageReceived;
 	}
 	/**
+	 * Sends a message to staff only. (i18n)
+	 * @returns if the message was received by anyone.
+	 */
+	static locMessageStaff(senderName:string, message:string, wasStaff:boolean):boolean;
+	static locMessageStaff(key:string, args: unknown[]):boolean;
+	static locMessageStaff(arg1:string, arg2:string | unknown[], wasStaff?:boolean):boolean
+	{
+		let messageReceived = false;
+		Groups.player.each(pl => {
+			const fishP = FishPlayer.get(pl);
+			if(fishP.hasPerm("mod")){
+				if(typeof arg2 == 'string')
+				{
+					pl.sendMessage(i18n(wasStaff ? `server.staff.staffmsg` : `server.staff.playermsg`, pl.locale, arg1, arg2 as string));
+				}
+				else pl.sendMessage(i18n(arg1, pl.locale, ...arg2 as unknown[]));
+				messageReceived = true;
+			}
+		});
+		return messageReceived;
+	}
+	/**
 	 * Sends a message to trusted players only.
 	 */
 	static messageTrusted(senderName:string, message:string):void;
 	static messageTrusted(message:string):void;
 	static messageTrusted(arg1:string, arg2?:string){
-		const message = arg2 ? `[gray]<[${Rank.trusted.color}]trusted[gray]>[white]${arg1}[green]: [cyan]${arg2}` : arg1;
+		const message = arg2 ? `[gray]<${Rank.trusted.color}trusted[gray]>[white]${arg1}[green]: [cyan]${arg2}` : arg1;
 		FishPlayer.forEachPlayer(fishP => {
 			if(fishP.ranksAtLeast("trusted")) fishP.sendMessage(message);
+		});
+	}
+	/**
+	 * Sends a message to trusted players only. (i18n)
+	 */
+	static locMessageTrusted(senderName:string, message:string):void;
+	static locMessageTrusted(key:string, args: unknown[]):void;
+	static locMessageTrusted(arg1:string, arg2:unknown[] | string){
+		FishPlayer.forEachPlayer(fishP => {
+			if(fishP.ranksAtLeast("trusted")) 
+			{
+				if(typeof arg2 == 'string')
+					fishP.sendMessage(i18n(`server.trusted.msg`, fishP.locale, Rank.trusted.color, arg1, arg2));
+				else fishP.sendMessage(i18n(arg1, fishP.locale, ...arg2));
+			}
 		});
 	}
 	/**
@@ -1107,7 +1144,7 @@ export class FishPlayer<Connected extends boolean = boolean> {
 	 * @returns if the message was received by anyone.
 	 */
 	static messageMuted(senderName:string, message:string):boolean;
-	static messageMuted(senderName:string):boolean;
+	static messageMuted(message:string):boolean;
 	static messageMuted(arg1:string, arg2?:string):boolean {
 		const message = arg2 ? `[gray]<[red]muted[gray]>[white]${arg1}[coral]: [lightgray]${arg2}` : arg1;
 		let messageReceived = false;
@@ -1120,9 +1157,34 @@ export class FishPlayer<Connected extends boolean = boolean> {
 		});
 		return messageReceived;
 	}
+	/**
+	 * Sends a message to muted players only.
+	 * @returns if the message was received by anyone.
+	 */
+	static locMessageMuted(senderName:string, message:string):boolean;
+	static locMessageMuted(key:string, args: unknown[]):boolean;
+	static locMessageMuted(arg1:string, arg2:string | unknown[]):boolean {
+		let messageReceived = false;
+		Groups.player.each(pl => {
+			const fishP = FishPlayer.get(pl);
+			if(fishP.hasPerm("seeMutedMessages")){
+				if(typeof arg2 == 'string')
+					pl.sendMessage(i18n(`server.muted.msg`, pl.locale, arg1, arg2));
+				else pl.sendMessage(i18n(arg1, pl.locale, ...arg2));
+				messageReceived = true;
+			}
+		});
+		return messageReceived;
+	}
 	static messageAllExcept(exclude:FishPlayer, message:string){
 		FishPlayer.forEachPlayer(fishP => {
 			if(fishP !== exclude) fishP.sendMessage(message);
+		});
+	}
+	static locMessageAllExcept(exclude:FishPlayer, key:string, ...args: unknown[])
+	{
+		FishPlayer.forEachPlayer(fishP => {
+			if(fishP !== exclude) fishP.sendMessage(i18n(key, fishP.locale, ...args));
 		});
 	}
 	static messageAllWithPerm(perm:PermType | undefined, message:string){

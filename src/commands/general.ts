@@ -200,13 +200,6 @@ export const commands = commandList({
 				...h,
 				info: uuidPattern.test(h.uuid) ? player(admins.getInfoOptional(h.uuid)) : null,
 			}));
-			// output(`[yellow]Tile history for tile (${tile.x}, ${tile.y}):\n` + history.map(e =>
-				// e.info ?
-					// (sender.hasPerm("viewUUIDs") && data.showUUID ?
-						// `[yellow]${copy(e.info.plainLastName())}[lightgray](${copy(e.uuid)})[yellow] ${e.action} a [cyan]${e.type}[] ${formatTimeRelative(e.time)}`
-					// : `[yellow]${copy(e.info.plainLastName())} ${e.action} a [cyan]${e.type}[] ${formatTimeRelative(e.time)}`)
-				// : `[yellow]${e.uuid}[yellow] ${e.action} a [cyan]${e.type}[] ${formatTimeRelative(e.time)}`
-			// ).join('\n'));
 			output(i18n("command.tilelog.history", sender.locale, tile.x, tile.y) + history.map(e => e.info ? (sender.hasPerm("viewUUIDs") && data.showUUID ? i18n("command.tilelog.histentryuuid", sender.locale, copy(e.info.plainLastName()), copy(e.uuid), i18n(`command.tilelog.action.${e.action ? e.action.replace(" ", "").replace("-","") : ""}`, sender.locale), e.type, formatTimeRelativeLocalize(e.time, sender.locale)) : i18n("command.tilelog.histentrynouuid", sender.locale, copy(e.info.plainLastName()), i18n(`command.tilelog.action.${e.action ? e.action.replace(" ", "").replace("-","") : ""}`, sender.locale), e.type, formatTimeRelativeLocalize(e.time, sender.locale))) : i18n("command.tilelog.histentrynoinfo", sender.locale, e.uuid, i18n(`command.tilelog.action.${e.action ? e.action.replace(" ", "").replace("-","") : ""}`, sender.locale), e.type, formatTimeRelativeLocalize(e.time, sender.locale))).join('\n'));
 		}
 	}),
@@ -314,7 +307,7 @@ export const commands = commandList({
 		handler({ sender, args: {target = sender}, localize, outputLocalizedSuccess }){
 			if(sender.stelled()) fail(localize`command.vanish.stelled`);
 			if(sender.muted()) fail(localize`command.vanish.muted`);
-			if(sender != target && target.hasPerm("blockTrolling")) fail(localize`command.vanish.untrollable`);
+			if(sender != target && target.hasPerm("blockTrolling")) fail(localize`commands.untrollable1`);
 			if(sender != target && !sender.ranksAtLeast("mod")) fail(localize`command.vanish.noperms`);
 			target.showRankPrefix = !target.showRankPrefix;
 			const isVisible = target.showRankPrefix ? localize`command.vanish.visible` : localize`command.vanish.hidden`;
@@ -487,7 +480,7 @@ export const commands = commandList({
 			requirements: [Req.gameRunning],
 			handler({sender, args: {target = sender}, outputSuccess, f, localize}){
 				if(!Gamemode.pvp() && !sender.hasPerm("mod")) fail(localize`command.spectate.noperms`);
-				if(target !== sender && target.hasPerm("blockTrolling")) fail(localize`command.spectate.untrollable`);
+				if(target !== sender && target.hasPerm("blockTrolling")) fail(localize`commands.untrollable3`);
 				if(target !== sender && !sender.ranksAtLeast("admin")) fail(localize`command.spectate.nopermsspec`);
 				if(spectators.has(target)){
 					resume(target);
@@ -717,7 +710,7 @@ export const commands = commandList({
 			if(target !== sender){
 				if(!sender.hasPerm("warn")) fail(localize`command.rules.noperms`);
 				if(!sender.canModerate(target)) Req.cooldown(Duration.minutes(10))({lastUsedSuccessfullySender});
-				if(target.hasPerm("blockTrolling")) fail(localize(`command.rules.untrollable`, target.name));
+				if(target.hasPerm("blockTrolling")) fail(localize(`commands.untrollable2`, target.name));
 			}
 			void target.showRules(["No"]).then((option) => {
 				if(option == "No"){
@@ -744,7 +737,7 @@ export const commands = commandList({
 		handler({args, sender, outputSuccess, f, localize}){
 			if(args.player){
 				if(!sender.hasPerm("trusted")) fail(localize`command.void.noperms`);
-				if(args.player !== sender && args.player.hasPerm("blockTrolling")) fail(`Target player is insufficiently trollable.`);
+				if(args.player !== sender && args.player.hasPerm("blockTrolling")) fail(localize`commands.untrollable3`);
 				void Menu.menu(i18n(`command.void.menu.title`, args.player.locale),
 					i18n(`command.void.menu.description`, args.player.locale),
 					[i18n(`command.void.menu.button`, args.player.locale)], args.player,

@@ -3,10 +3,6 @@
 Copyright © BalaM314, 2026. All Rights Reserved.
 This file contains automatic moderation and antibot code.
 */
-var __makeTemplateObject = (this && this.__makeTemplateObject) || function (cooked, raw) {
-    if (Object.defineProperty) { Object.defineProperty(cooked, "raw", { value: raw }); } else { cooked.raw = raw; }
-    return cooked;
-};
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -343,10 +339,10 @@ function checkVPNAndJoins(fishP) {
                     (0, utils_1.logAction)("autoflagged", "AntiVPN", fishP);
                     void api.sendStaffMessage("Autoflagged player ".concat(fishP.cleanedName, "[cyan] for suspected vpn!"), "AntiVPN", true);
                     if (!exports.Antibot.antiBotMode())
-                        players_1.FishPlayer.messageStaff("[yellow]WARNING:[scarlet] player [cyan]\"".concat(fishP.prefixedName, "[cyan]\"[yellow] is new (").concat(info.timesJoined - 1, " joins) and using a vpn. Unless there is an ongoing griefer raid, they are most likely innocent. Free them with /free."));
+                        players_1.FishPlayer.locMessageStaff("server.staff.vpn", [fishP.prefixedName, info.timesJoined - 1]);
                     Log.warn("Player ".concat(fishP.cleanedName, " (").concat(fishP.uuid, ") was autoflagged."));
                     if (fishP.connected())
-                        void menus_1.Menu.buttons(fishP, "[gold]Welcome to Fish Community!", "[gold]Hi there! You have been automatically [scarlet]stopped and muted[] because we've found something to be [pink]a bit sus[]. You can still talk to staff and request to be freed. ".concat(config_1.FColor.discord(templateObject_1 || (templateObject_1 = __makeTemplateObject(["Join our Discord"], ["Join our Discord"]))), " to request a staff member come online if none are on."), [[
+                        void menus_1.Menu.buttons(fishP, (0, i18n_1.i18n)("welcomecommunity", fishP.locale), (0, i18n_1.i18n)("server.antivpn.autoflagged", fishP.locale), [[
                                 { data: "Close", text: "Close" },
                                 { data: "Discord", text: config_1.FColor.discord("Discord") },
                             ]]).then(function (option) {
@@ -354,16 +350,16 @@ function checkVPNAndJoins(fishP) {
                                 Call.openURI(fishP.con(), config_1.text.discordURL);
                             }
                         });
-                    fishP.sendMessage("[gold]Welcome to Fish Community!\n[gold]Hi there! You have been automatically [scarlet]stopped and muted[] because we've found something to be [pink]a bit sus[]. You can still talk to staff and request to be freed. ".concat(config_1.FColor.discord(templateObject_2 || (templateObject_2 = __makeTemplateObject(["Join our Discord"], ["Join our Discord"]))), " to request a staff member come online if none are on."));
+                    fishP.sendLocalizedMessage("server.antivpn.autoflagged");
                 }
             }
             else if (info.timesJoined < 5) {
-                players_1.FishPlayer.messageStaff("[yellow]WARNING:[scarlet] player [cyan]\"".concat(fishP.prefixedName, "[cyan]\"[yellow] is new (").concat(info.timesJoined - 1, " joins) and using a vpn."));
+                players_1.FishPlayer.locMessageStaff("server.staff.newvpn", [fishP.prefixedName, info.timesJoined - 1]);
             }
         }
         else {
             if (info.timesJoined == 1) {
-                players_1.FishPlayer.messageTrusted("[yellow]Player \"".concat(fishP.prefixedName, "[yellow]\" is on first join."));
+                players_1.FishPlayer.locMessageTrusted("server.trusted.newplayer", [fishP.prefixedName]);
             }
         }
         if (info.timesJoined == 1) {
@@ -399,18 +395,18 @@ function validateVotekickSession() {
                     if (target !== easterEggVotekickTarget) {
                         easterEggVotekickTarget = target;
                         var msg = (_a = (new Error()).stack) === null || _a === void 0 ? void 0 : _a.split("\n").slice(0, 4).join("\n");
-                        Call.sendMessage("[scarlet]Server[lightgray] has voted on kicking[orange] ".concat(initiator.prefixedName, "[lightgray].[accent] (\u221E/").concat(Vars.netServer.votesRequired(), ")\n[scarlet]Error: failed to kick player ").concat(initiator.prefixedName, "[scarlet]\n").concat(msg, "\n[scarlet]Error: failed to cancel votekick\n").concat(msg));
+                        (0, i18n_1.sendLocalizedMessage)("server.votekick.kickback.easter", initiator.prefixedName, Vars.netServer.votesRequired(), msg);
                     }
                     return;
                 }
-                Call.sendMessage("[scarlet]Server[lightgray] has voted on kicking[orange] ".concat(initiator.prefixedName, "[lightgray].[accent] (\u221E/").concat(Vars.netServer.votesRequired(), ")\n[scarlet]Vote passed."));
-                initiator.kick("You are not allowed to votekick other players while marked.", 2);
+                (0, i18n_1.sendLocalizedMessage)("server.votekick.kickback", initiator.prefixedName, Vars.netServer.votesRequired());
+                initiator.kick((0, i18n_1.i18n)("self.kicked.markedvk", initiator.locale), 2);
                 Reflect.get(Vars.netServer.currentlyKicking, "task").cancel();
                 Vars.netServer.currentlyKicking = null;
                 return;
             }
             else if ((initiator === null || initiator === void 0 ? void 0 : initiator.hasPerm("immediatelyVotekickNewPlayers")) && target.isSuspicious("high")) {
-                Call.sendMessage("[scarlet]Server[lightgray] has voted on kicking[orange] ".concat(target.prefixedName, "[lightgray].[accent] (").concat(Vars.netServer.votesRequired(), "/").concat(Vars.netServer.votesRequired(), ")\n[scarlet]Vote passed."));
+                (0, i18n_1.sendLocalizedMessage)("server.votekick.serverkick", target.prefixedName, Vars.netServer.votesRequired(), Vars.netServer.votesRequired());
                 target.kick(Packets.KickReason.vote, funcs_1.Duration.minutes(30));
                 Reflect.get(Vars.netServer.currentlyKicking, "task").cancel();
                 Vars.netServer.currentlyKicking = null;
@@ -420,7 +416,7 @@ function validateVotekickSession() {
                 //Increase votes by 1, from 1 to 2
                 Reflect.set(Vars.netServer.currentlyKicking, "votes", Packages.java.lang.Integer(2));
                 voted.put("__server__", 1);
-                Call.sendMessage("[scarlet]Server[lightgray] has voted on kicking[orange] ".concat(target.prefixedName, "[lightgray].[accent] (2/").concat(Vars.netServer.votesRequired(), ")\n[lightgray]Type[orange] /vote <y/n>[] to agree."));
+                (0, i18n_1.sendLocalizedMessage)("server.votekick.serverkick.notinstant", target.prefixedName, Vars.netServer.votesRequired());
                 return;
             }
         }
@@ -571,4 +567,3 @@ Events.on(EventType.PlayerJoin, function (e) {
     //which would cause heuristics to activate twice
     exports.Heuristics.activateHeuristics(players_1.FishPlayer.get(e.player));
 });
-var templateObject_1, templateObject_2;
