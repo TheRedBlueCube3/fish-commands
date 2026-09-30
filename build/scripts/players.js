@@ -1390,6 +1390,16 @@ var FishPlayer = /** @class */ (function () {
                 fishP.sendMessage(message);
         });
     };
+    FishPlayer.locMessageAllExcept = function (exclude, key) {
+        var args = [];
+        for (var _i = 2; _i < arguments.length; _i++) {
+            args[_i - 2] = arguments[_i];
+        }
+        FishPlayer.forEachPlayer(function (fishP) {
+            if (fishP !== exclude)
+                fishP.sendMessage(i18n_1.i18n.apply(void 0, __spreadArray([key, fishP.locale], __read(args), false)));
+        });
+    };
     FishPlayer.messageAllWithPerm = function (perm, message) {
         if (perm) {
             FishPlayer.forEachPlayer(function (fishP) {

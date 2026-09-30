@@ -349,13 +349,6 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
                 time: d.readNumber(16),
                 type: d.readString(2),
             }); }, 1); }).map(function (h) { return (__assign(__assign({}, h), { info: globals_1.uuidPattern.test(h.uuid) ? player(admins.getInfoOptional(h.uuid)) : null })); });
-            // output(`[yellow]Tile history for tile (${tile.x}, ${tile.y}):\n` + history.map(e =>
-            // e.info ?
-            // (sender.hasPerm("viewUUIDs") && data.showUUID ?
-            // `[yellow]${copy(e.info.plainLastName())}[lightgray](${copy(e.uuid)})[yellow] ${e.action} a [cyan]${e.type}[] ${formatTimeRelative(e.time)}`
-            // : `[yellow]${copy(e.info.plainLastName())} ${e.action} a [cyan]${e.type}[] ${formatTimeRelative(e.time)}`)
-            // : `[yellow]${e.uuid}[yellow] ${e.action} a [cyan]${e.type}[] ${formatTimeRelative(e.time)}`
-            // ).join('\n'));
             output((0, i18n_1.i18n)("command.tilelog.history", sender.locale, tile.x, tile.y) + history.map(function (e) { return e.info ? (sender.hasPerm("viewUUIDs") && data.showUUID ? (0, i18n_1.i18n)("command.tilelog.histentryuuid", sender.locale, copy(e.info.plainLastName()), copy(e.uuid), (0, i18n_1.i18n)("command.tilelog.action.".concat(e.action ? e.action.replace(" ", "").replace("-", "") : ""), sender.locale), e.type, (0, utils_1.formatTimeRelativeLocalize)(e.time, sender.locale)) : (0, i18n_1.i18n)("command.tilelog.histentrynouuid", sender.locale, copy(e.info.plainLastName()), (0, i18n_1.i18n)("command.tilelog.action.".concat(e.action ? e.action.replace(" ", "").replace("-", "") : ""), sender.locale), e.type, (0, utils_1.formatTimeRelativeLocalize)(e.time, sender.locale))) : (0, i18n_1.i18n)("command.tilelog.histentrynoinfo", sender.locale, e.uuid, (0, i18n_1.i18n)("command.tilelog.action.".concat(e.action ? e.action.replace(" ", "").replace("-", "") : ""), sender.locale), e.type, (0, utils_1.formatTimeRelativeLocalize)(e.time, sender.locale)); }).join('\n'));
         }
     }), aoelog: (0, commands_1.command)(function () {
