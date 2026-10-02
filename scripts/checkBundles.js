@@ -71,6 +71,18 @@ for (const locale in bundleContents) {
         hasIssue = true;
         console.log(`\x1b[31mKey \x1b[0;3m${key}\x1b[23;31m is missing from \x1b[1;34msource locale\x1b[22;31m, but exists in locale \x1b[1;34m${locale}\x1b[22;31m!\x1b[0m`);
     }
+    for (const key in sourceBundle) {
+        if (!sourceBundle[key].match(/\$\{[^{}]*\}/))
+            continue;
+        hasIssue = true;
+        console.log(`\x1b[33mKey \x1b[0;3m${key}\x1b[23;33m has Javascript format argument in \x1b[1;34msource locale\x1b[22;33m!\x1b[0m`);
+    }
+    for (const key in bundle) {
+        if (!bundle[key].match(/\$\{[^{}]*\}/))
+            continue;
+        hasIssue = true;
+        console.log(`\x1b[33mKey \x1b[0;3m${key}\x1b[23;33m has Javascript format argument in locale \x1b[1;34m${locale}\x1b[22;33m!\x1b[0m`);
+    }
     console.log("\x1b[0m\x1b[3mChecking format argument counts...\x1b[0m");
     for (const key in formArgCounts) {
         if (!Object.keys(sourceFormArgCounts).includes(key))

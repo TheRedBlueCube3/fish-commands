@@ -16,7 +16,8 @@ import { loadPacketHandlers } from "/packetHandlers";
 import { FishPlayer } from "/players";
 import * as timers from "/timers";
 import * as translation from "/translation";
-import { addToTileHistory, fishCommandsRootDirPath, formatTimeRelative, matchFilter, processChat, restartNow, serverRestartLoop, vnwCondition } from "/utils";
+import { addToTileHistory, fishCommandsRootDirPath, formatTimeRelative, formatTimeRelativeLocalize, matchFilter, processChat, restartNow, serverRestartLoop, vnwCondition } from "/utils";
+import { i18n } from "/frameworks/i18n";
 const { Menu } = menus;
 
 Events.on(EventType.ConnectionEvent, (e) => {
@@ -35,14 +36,14 @@ Events.on(EventType.ConnectionEvent, (e) => {
 		try {
 			Vars.netServer.admins.blacklistDos(e.connection.connection.getRemoteAddressUDP().getAddress().getHostAddress());
 		} catch {}
-		e.connection.kick("You have been DOSblacklisted. Please join our discord for help: " + text.discordURL + "\nYou won't see this message again.");
+		e.connection.kick(i18n(`server.blacklisted`, e.connection.player.locale, text.discordURL));
 		Log.info(`&yAntibot killed connection ${e.connection.address} due to flagged while under attack`);
 	}
 });
 Events.on(EventType.PlayerConnect, (e) => {
 	if(Antibot.shouldKickNewPlayers() && e.player.info.timesJoined == 1){
 		//do not use the helper function, for maximum performance
-		e.player.kick("Please rejoin the server in 20 seconds. We apologize for the inconvenience, we are currently under DDoS attack.", 3600_000);
+		e.player.kick(i18n(`server.antibot.underattack`, e.player.locale), 3600_000);
 	} else FishPlayer.onPlayerConnect(e.player);
 });
 Events.on(EventType.ConnectPacketEvent, (e: { packet: ConnectPacket; connection: NetConnection }) => {
@@ -69,7 +70,7 @@ Events.on(EventType.ConnectPacketEvent, (e: { packet: ConnectPacket; connection:
 	}
 	if(newPlayer && (nameBlacklisted || nameGraylisted && Antibot.antiBotMode())){
 		Log.info(`Temporarily kicking ip @ with name @ because it matched the configured regex.`, e.connection.address, e.packet.name);
-		e.connection.kick("Please change your name to something else. We are currently under attack by bots and your name looks similar to the bots' names.", 3000);
+		e.connection.kick(i18n(`server.antibot.similarname`, e.connection.player.locale), 3000);
 		return;
 	}
 	const longModName = e.packet.mods.contains((str:string) => str.length > 50);
@@ -185,7 +186,7 @@ Events.on(EventType.ServerLoadEvent, () => {
 
 		//prevent stopped players from doing anything
 		if(!fishP.hasPerm("play")){
-			action.player.sendMessage('[scarlet]\u26A0 [yellow]You are stopped, you cant perfom this action.');
+			action.player.sendMessage(i18n(`server.stopped.cantdothat`, action.player.locale));
 			return false;
 		} else {
 			if(action.type === Administration.ActionType.pickupBlock){
@@ -196,15 +197,15 @@ Events.on(EventType.ServerLoadEvent, () => {
 					type: action.tile!.block()?.name ?? "nothing",
 				});
 			} else if(action.type === Administration.ActionType.control && !action.unit?.spawnedByCore && Date.now() < fishP.blockedFromPossessingUnitsUntil){
-				action.player.sendMessage(`[scarlet]\u26A0 [yellow]You are blocked from controlling units for ${formatTimeRelative(fishP.blockedFromPossessingUnitsUntil, true)}`);
+				action.player.sendMessage(i18n(`server.stopped.nocontrol`, action.player.locale, formatTimeRelativeLocalize(fishP.blockedFromPossessingUnitsUntil, action.player.locale, true)));
 				return false;
 			} else if(action.type === Administration.ActionType.commandUnits && Date.now() < fishP.blockedFromCommandingUnitsUntil){
-				action.player.sendMessage(`[scarlet]\u26A0 [yellow]You are blocked from commanding units for ${formatTimeRelative(fishP.blockedFromCommandingUnitsUntil, true)}`);
+				action.player.sendMessage(i18n(`server.stopped.nocommand`, action.player.locale, formatTimeRelativeLocalize(fishP.blockedFromCommandingUnitsUntil, action.player.locale, true)));
 				return false;
 			} else if(action.type === Administration.ActionType.pingLocation && action.pingText && action.pingText.length < Vars.maxPingTextLength){
 				const fishP = FishPlayer.get(action.player);
 				if(fishP.muted()){
-					action.player.sendMessage(`[scarlet]\u26A0 [yellow]You are muted, you cannot send text through location pings.`);
+					action.player.sendMessage(i18n(`server.muted.nopings`, action.player.locale));
 					return false;
 				} else if(matchFilter(action.pingText, "chat", false)){
 					//Allow it, but replace
