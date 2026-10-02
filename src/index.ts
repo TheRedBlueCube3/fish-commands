@@ -17,7 +17,7 @@ import { FishPlayer } from "/players";
 import * as timers from "/timers";
 import * as translation from "/translation";
 import { addToTileHistory, fishCommandsRootDirPath, formatTimeRelative, formatTimeRelativeLocalize, matchFilter, processChat, restartNow, serverRestartLoop, vnwCondition } from "/utils";
-import { i18n } from "/frameworks/i18n";
+import { i18n, sendLocalizedMessage } from "/frameworks/i18n";
 const { Menu } = menus;
 
 Events.on(EventType.ConnectionEvent, (e) => {
@@ -304,7 +304,7 @@ Events.on(EventType.GameOverEvent, (e) => {
 	}
 	if(fishState.restartQueued){
 		//restart
-		Call.sendMessage(`[accent]---[[[coral]+++[]]---\n[accent]Server restart imminent. [green]We'll be back after 15 seconds.[]\n[accent]---[[[coral]+++[]]---`);
+		sendLocalizedMessage(`server.willrestartimminent`, 15);
 		serverRestartLoop(12, true);
 		Events.on(EventType.WorldLoadBeginEvent, () => {
 			//Remove save
@@ -325,10 +325,10 @@ Events.on(EventType.AdminRequestEvent, e => {
 	if(e.action == Packets.AdminAction.wave){
 		const fishP = FishPlayer.get(e.player) as FishPlayer<true>;
 		if(Date.now() > fishP.autoConfirmSkipWaveUntil){
-			Menu.buttons(fishP, "Confirm", "Are you sure you want to skip the wave?", [
-				[{data: "yes", text: "[orange]Yes"}],
-				[{data: "suppress", text: "[orange]Yes, don't ask again"}],
-				[{data: null, text: "[green]Cancel"}],
+			Menu.buttons(fishP, fishP.localize(`confirm`), fishP.localize(`server.waveskip.sure`), [
+				[{data: "yes", text: '[orange]' + fishP.localize(`yes`)}],
+				[{data: "suppress", text: '[orange]' + fishP.localize(`yes.noask`)}],
+				[{data: null, text: '[green]' + fishP.localize(`cancel`)}],
 			] as const, {
 				onCancel: "null",
 			}).then(d => {
@@ -336,9 +336,9 @@ Events.on(EventType.AdminRequestEvent, e => {
 				Vars.logic.skipWave();
 				Log.info("&lc@ &fi&lk[&lb@&fi&lk]&fb has skipped a wave.", e.player.plainName(), fishP.uuid);
 				if(d == "suppress"){
-					fishP.sendMessage("Wave skipped. You won't be asked again for the next 1 minute.");
+					fishP.sendLocalizedMessage("server.waveskip.skipped.noasked");
 					fishP.autoConfirmSkipWaveUntil = Date.now() + Duration.minutes(1);
-				} else fishP.sendMessage("Wave skipped.");
+				} else fishP.sendLocalizedMessage("server.waveskip.skipped");
 			}).catch(Log.err);
 			// throw new ValidateException(e.player, "Skip wave admin action blocked, requesting confirmation");
 			//Bizarre hack

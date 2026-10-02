@@ -1215,6 +1215,7 @@ export class FishPlayer<Connected extends boolean = boolean> {
 	connected():this is FishPlayer<true> {
 		return this.player != null && !this.player.con.hasDisconnected;
 	}
+	
 	voteWeight():number {
 		//TODO vote weighting based on rank and joins
 		return 1;
@@ -1283,6 +1284,13 @@ export class FishPlayer<Connected extends boolean = boolean> {
 			this.player?.sendMessage(i18n(key, this.locale, ...args));
 			this.lastRatelimitedMessage = Date.now();
 		}
+	}
+	/**
+	 * Localizes a key into the locale of this player.
+	 */
+	localize(key:string, ...args:unknown[])
+	{
+		return i18n(key, this.locale, ...args);
 	}
 	showRules<T extends string>(options: T[] = []){
 		return Menu.menu(
