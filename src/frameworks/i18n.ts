@@ -3,10 +3,15 @@ Copyright © BalaM314, 2026. All Rights Reserved.
 This file contains helper functions for i18n (internationalization) support.
 */
 
+import { Formattable } from "/frameworks/commands";
+import { ipPattern, uuidPattern } from "/globals";
+import { FishPlayer } from "/players";
+import { Rank, RoleFlag } from "/ranks";
+
 //#region I18N helpers
 const handle = Vars.modDirectory.child("fish-commands/bundles/bundle");
 
-const createLangBundles = <T extends string>(languages: T[]) => Object.fromEntries(languages.map(lang => [lang, I18NBundle.createBundle(handle, new Locale(lang))]));
+const createLangBundles = <T extends string>(languages: T[]) => Object.fromEntries(languages.map(lang => [lang, I18NBundle.createBundle(handle, new Locale(lang == "en" ? "" : lang))]));
 
 /** The list of languages with translations in the bundle.properties files. */
 export const bundles = createLangBundles(["en", "ru"]);
@@ -91,3 +96,86 @@ export function sendLocMessageCB(key: string, argsCB: (locale: string, localize:
 }
 
 //#endregion
+//#region Formatting
+
+type FlocFunction = (() => string) | ((str: string) => string)
+
+export const FLocColor = (
+	<T extends string>(data:Record<T, string>):Record<T, {
+		(): string;
+		(str: string): string;
+	}> =>
+		Object.fromEntries(Object.entries(data).map(([k, c]) =>
+			[k, (str?:string) =>
+				str != null ?
+					`${str}${c}[]`
+				: c
+			]
+		))
+)({
+	discord: "[#7289DA]",
+	/** Used for tips and welcome messages. */
+	tip: "[gold]",
+	member: "[pink]",
+	achievement: "[lime]",
+});
+
+export function locf(args: Formattable[], key: string, locale: string, flocfunc?: FlocFunction)
+{
+	const reset = i18n(key, locale).match(/^\[.+?\]/)?.[0] ?? "";
+	return args.map(chunk => {
+		if(!flocfunc) flocfunc = (str: string) => str;
+		let unprocessed: string;
+		if(chunk instanceof FishPlayer){
+			unprocessed = `[cyan](${chunk.name}[cyan])` + reset;
+		}else if(chunk instanceof Rank){
+			unprocessed = `${chunk.color}${i18n(`rank.${chunk.name}.name`, locale)}[]` + reset;
+		} else if(chunk instanceof RoleFlag){
+			unprocessed = `${chunk.color}${i18n(`flag.${chunk.name}.name`, locale)}[]` + reset;
+		} else if(chunk instanceof Error){
+			unprocessed = `[red]${chunk.toString()}` + reset;
+		} else if(chunk instanceof Player){
+			const fishP = FishPlayer.get(chunk);
+			unprocessed = `[cyan](${fishP.name}[cyan])` + reset;
+		} else if(typeof chunk == "string"){
+			if(uuidPattern.test(chunk)){
+				unprocessed = `[blue]${chunk}[]`;
+			} else if(ipPattern.test(chunk)){
+				unprocessed = `[blue]${chunk}[]`;
+			} else {
+				//TODO reset color?
+				unprocessed = chunk;
+			}
+		} else if(typeof chunk == "boolean"){
+			unprocessed = `[blue]${chunk.toString()}[]`;
+		} else if(typeof chunk == "number"){
+			unprocessed = `[blue]${chunk.toString()}[]`;
+		} else if(chunk instanceof Administration.PlayerInfo){
+			unprocessed = chunk.lastName + reset;
+		} else if(chunk instanceof UnitType){
+			unprocessed = `[cyan]${i18n(chunk.name, locale)}[]`;
+		} else if(chunk instanceof Block){
+			unprocessed = `[cyan]${chunk.localizedName}[]`; // i'm not localizing all blocks
+		} else if(chunk instanceof Team){
+			unprocessed = `[white][#${chunk.color.toString()}]${chunk.emoji}${i18n(chunk.name, locale)}[][]`;
+		} else if(chunk instanceof Item){
+			unprocessed = `[cyan]${i18n(chunk.name, locale)}[]`;
+		} else {
+				chunk satisfies never;
+				Log.err("Invalid format object!");
+				Log.info(chunk);
+				unprocessed = chunk as string; //allow it to get stringified by the engine
+		}
+		return flocfunc(unprocessed);
+	});
+}
+
+export function i18nf(key: string, locale: string, ...args: Formattable[])
+{
+	return(i18n(key, locale, locf(args, key, locale)));
+}
+
+export function i18nfloc(key: string, locale: string, flocfunc: FlocFunction, ...args: Formattable[])
+{
+	return(i18n(key, locale, locf(args, key, locale)));
+}

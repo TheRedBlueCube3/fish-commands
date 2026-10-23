@@ -61,6 +61,7 @@ var packetHandlers_1 = require("/packetHandlers");
 var players_1 = require("/players");
 var timers = __importStar(require("/timers"));
 var utils_1 = require("/utils");
+var i18n_1 = require("/frameworks/i18n");
 var Menu = menus.Menu;
 Events.on(EventType.ConnectionEvent, function (e) {
     if (Vars.netServer.admins.bannedIPs.contains(e.connection.address)) {
@@ -80,14 +81,14 @@ Events.on(EventType.ConnectionEvent, function (e) {
             Vars.netServer.admins.blacklistDos(e.connection.connection.getRemoteAddressUDP().getAddress().getHostAddress());
         }
         catch (_a) { }
-        e.connection.kick("You have been DOSblacklisted. Please join our discord for help: " + config_1.text.discordURL + "\nYou won't see this message again.");
+        e.connection.kick((0, i18n_1.i18n)("server.blacklisted", e.connection.player.locale, config_1.text.discordURL));
         Log.info("&yAntibot killed connection ".concat(e.connection.address, " due to flagged while under attack"));
     }
 });
 Events.on(EventType.PlayerConnect, function (e) {
     if (automod_1.Antibot.shouldKickNewPlayers() && e.player.info.timesJoined == 1) {
         //do not use the helper function, for maximum performance
-        e.player.kick("Please rejoin the server in 20 seconds. We apologize for the inconvenience, we are currently under DDoS attack.", 3600000);
+        e.player.kick((0, i18n_1.i18n)("server.antibot.underattack", e.player.locale), 3600000);
     }
     else
         players_1.FishPlayer.onPlayerConnect(e.player);
@@ -119,7 +120,7 @@ Events.on(EventType.ConnectPacketEvent, function (e) {
     }
     if (newPlayer && (nameBlacklisted || nameGraylisted && automod_1.Antibot.antiBotMode())) {
         Log.info("Temporarily kicking ip @ with name @ because it matched the configured regex.", e.connection.address, e.packet.name);
-        e.connection.kick("Please change your name to something else. We are currently under attack by bots and your name looks similar to the bots' names.", 3000);
+        e.connection.kick((0, i18n_1.i18n)("server.antibot.similarname", e.connection.player.locale), 3000);
         return;
     }
     var longModName = e.packet.mods.contains(function (str) { return str.length > 50; });
@@ -209,7 +210,7 @@ Events.on(EventType.ServerLoadEvent, function () {
         var fishP = players_1.FishPlayer.get(player);
         //prevent stopped players from doing anything
         if (!fishP.hasPerm("play")) {
-            action.player.sendMessage('[scarlet]\u26A0 [yellow]You are stopped, you cant perfom this action.');
+            action.player.sendMessage((0, i18n_1.i18n)("server.stopped.cantdothat", action.player.locale));
             return false;
         }
         else {
@@ -222,17 +223,17 @@ Events.on(EventType.ServerLoadEvent, function () {
                 });
             }
             else if (action.type === Administration.ActionType.control && !((_c = action.unit) === null || _c === void 0 ? void 0 : _c.spawnedByCore) && Date.now() < fishP.blockedFromPossessingUnitsUntil) {
-                action.player.sendMessage("[scarlet]\u26A0 [yellow]You are blocked from controlling units for ".concat((0, utils_1.formatTimeRelative)(fishP.blockedFromPossessingUnitsUntil, true)));
+                action.player.sendMessage((0, i18n_1.i18n)("server.stopped.nocontrol", action.player.locale, (0, utils_1.formatTimeRelativeLocalize)(fishP.blockedFromPossessingUnitsUntil, action.player.locale, true)));
                 return false;
             }
             else if (action.type === Administration.ActionType.commandUnits && Date.now() < fishP.blockedFromCommandingUnitsUntil) {
-                action.player.sendMessage("[scarlet]\u26A0 [yellow]You are blocked from commanding units for ".concat((0, utils_1.formatTimeRelative)(fishP.blockedFromCommandingUnitsUntil, true)));
+                action.player.sendMessage((0, i18n_1.i18n)("server.stopped.nocommand", action.player.locale, (0, utils_1.formatTimeRelativeLocalize)(fishP.blockedFromCommandingUnitsUntil, action.player.locale, true)));
                 return false;
             }
             else if (action.type === Administration.ActionType.pingLocation && action.pingText && action.pingText.length < Vars.maxPingTextLength) {
                 var fishP_1 = players_1.FishPlayer.get(action.player);
                 if (fishP_1.muted()) {
-                    action.player.sendMessage("[scarlet]\u26A0 [yellow]You are muted, you cannot send text through location pings.");
+                    action.player.sendMessage((0, i18n_1.i18n)("server.muted.nopings", action.player.locale));
                     return false;
                 }
                 else if ((0, utils_1.matchFilter)(action.pingText, "chat", false)) {
@@ -345,7 +346,7 @@ Events.on(EventType.GameOverEvent, function (e) {
     }
     if (globals_1.fishState.restartQueued) {
         //restart
-        Call.sendMessage("[accent]---[[[coral]+++[]]---\n[accent]Server restart imminent. [green]We'll be back after 15 seconds.[]\n[accent]---[[[coral]+++[]]---");
+        (0, i18n_1.sendLocalizedMessage)("server.willrestartimminent", 15);
         (0, utils_1.serverRestartLoop)(12, true);
         Events.on(EventType.WorldLoadBeginEvent, function () {
             //Remove save
@@ -364,10 +365,10 @@ Events.on(EventType.AdminRequestEvent, function (e) {
     if (e.action == Packets.AdminAction.wave) {
         var fishP_2 = players_1.FishPlayer.get(e.player);
         if (Date.now() > fishP_2.autoConfirmSkipWaveUntil) {
-            Menu.buttons(fishP_2, "Confirm", "Are you sure you want to skip the wave?", [
-                [{ data: "yes", text: "[orange]Yes" }],
-                [{ data: "suppress", text: "[orange]Yes, don't ask again" }],
-                [{ data: null, text: "[green]Cancel" }],
+            Menu.buttons(fishP_2, fishP_2.localize("confirm"), fishP_2.localize("server.waveskip.sure"), [
+                [{ data: "yes", text: '[orange]' + fishP_2.localize("yes") }],
+                [{ data: "suppress", text: '[orange]' + fishP_2.localize("yes.noask") }],
+                [{ data: null, text: '[green]' + fishP_2.localize("cancel") }],
             ], {
                 onCancel: "null",
             }).then(function (d) {
@@ -376,11 +377,11 @@ Events.on(EventType.AdminRequestEvent, function (e) {
                 Vars.logic.skipWave();
                 Log.info("&lc@ &fi&lk[&lb@&fi&lk]&fb has skipped a wave.", e.player.plainName(), fishP_2.uuid);
                 if (d == "suppress") {
-                    fishP_2.sendMessage("Wave skipped. You won't be asked again for the next 1 minute.");
+                    fishP_2.sendLocalizedMessage("server.waveskip.skipped.noasked");
                     fishP_2.autoConfirmSkipWaveUntil = Date.now() + funcs_1.Duration.minutes(1);
                 }
                 else
-                    fishP_2.sendMessage("Wave skipped.");
+                    fishP_2.sendLocalizedMessage("server.waveskip.skipped");
             }).catch(Log.err);
             // throw new ValidateException(e.player, "Skip wave admin action blocked, requesting confirmation");
             //Bizarre hack

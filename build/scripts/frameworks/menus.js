@@ -67,6 +67,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.textListeners = exports.listeners = exports.Menu = exports.Cancel = void 0;
 exports.registerListeners = registerListeners;
+var i18n_1 = require("/frameworks/i18n");
 var commands_1 = require("/frameworks/commands");
 var funcs_1 = require("/funcs");
 var players_1 = require("/players");
@@ -319,7 +320,7 @@ exports.Menu = {
      * Adds left and right arrows to switch pages.
      * Shows different text based on the current page.
      */
-    textPages: function (target, pages, options, cfg) {
+    textPages: function (target, pages, locale, options, cfg) {
         if (options === void 0) { options = []; }
         if (cfg === void 0) { cfg = {}; }
         var _a = promise_1.Promise.withResolvers(), promise = _a.promise, reject = _a.reject, resolve = _a.resolve;
@@ -332,11 +333,11 @@ exports.Menu = {
                     { data: ["right", 1], text: "[".concat(index == pages.length - 1 ? "gray" : "accent", "]-->") },
                     { data: ["right", pageSkipSize], text: "[".concat(index == pages.length - 1 ? "gray" : "accent", "]>>>") },
                 ], [
-                    { data: ["numbers"], text: "[accent]Page ".concat(index + 1, "/").concat(pages.length) },
+                    { data: ["numbers"], text: (0, i18n_1.i18n)("textPages.page", locale, index + 1, pages.length) },
                 ]
             ], __read(options.map(function (d, i) { return [{ data: [i], text: d }]; })), false), [
                 [
-                    { data: ["cancel"], text: "[lightgray]Close" },
+                    { data: ["cancel"], text: (0, i18n_1.i18n)("textPages.close", locale) },
                 ],
             ], false);
             void exports.Menu.buttons(target, pages[index][0], pages[index][1](), opts, __assign(__assign({}, cfg), { onCancel: "null" })).then(function (response) {

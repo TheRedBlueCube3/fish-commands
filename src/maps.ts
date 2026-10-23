@@ -3,12 +3,13 @@ Copyright © BalaM314, 2026. All Rights Reserved.
 This file contains the map run tracker and statistics computation. 
 */
 
+import { i18n, sendLocMessageCB } from "/frameworks/i18n";
 import { Gamemode } from "/config";
 import { FFunction } from "/frameworks/commands";
 import { dataClass, serialize } from "/frameworks/io";
 import { computeStatistics, Duration } from "/funcs";
 import { FishEvents } from "/globals";
-import { formatTime, formatTimeShort, formatTimestamp, match } from "/utils";
+import { formatTime, formatTimeLocalize, formatTimeShort, formatTimeShortLocalize, formatTimestamp, match } from "/utils";
 
 type FinishedMapRunData = {
 	winTeam:Team;
@@ -77,13 +78,17 @@ export class PartialMapRun {
 				if(Gamemode.attack() && finishedRun.success){
 					const bestPreviousTime = fmap.stats().shortestWinTime;
 					const duration = finishedRun.duration();
-					Call.sendMessage(
-`[orange]--------
-${finishedRun.success && duration < bestPreviousTime ?
-	`[green]New highscore! Map completed in [accent]${formatTimeShort(duration)}[]`
-: `[orange]Map completed in [accent]${formatTimeShort(duration)}[]. Current highscore: [green]${formatTimeShort(bestPreviousTime)}[]`}
-[orange]--------`
-					);
+					// 					Call.sendMessage(
+					// `[orange]--------
+					// ${finishedRun.success && duration < bestPreviousTime ?
+					// 	`[green]New highscore! Map completed in [accent]${formatTimeShort(duration)}[]`
+					// : `[orange]Map completed in [accent]${formatTimeShort(duration)}[]. Current highscore: [green]${formatTimeShort(bestPreviousTime)}[]`}
+					// [orange]--------`
+					// 					);
+					sendLocMessageCB('maps.finished', (locale, localize) => [
+						finishedRun.success && duration < bestPreviousTime 
+						? localize('maps.attack.highscore', [formatTimeShortLocalize(duration, locale)]) 
+						: localize('maps.attack.finished', [formatTimeShortLocalize(duration, locale), formatTimeShortLocalize(bestPreviousTime, locale)])]);
 				} else if(Gamemode.survival()){
 					const bestPreviousWave = fmap.stats().highestWave;
 					const wave = finishedRun.wave;
@@ -249,54 +254,59 @@ export class FMap extends dataClass<FMapData>() {
 			mostRecentWin: victories.at(-1)?.startTime
 		};
 	}
-	displayStats(f:FFunction):string | null {
+	displayStats(f:FFunction, locale:string):string | null {
 		const map = this.map; if(!map) return null;
 		const stats = this.stats();
 		const rules = this.rules()!;
 
 		const modeSpecificStats = match(Gamemode.name(), {
-			attack: `\
-[#CCFFCC]Total runs: ${stats.allRunCount} (${stats.victories} wins, ${stats.totalLosses} losses, ${stats.earlyRTVs} RTVs)
-[#CCFFCC]Outcomes: ${f.percent(stats.winRate, 1)} wins, ${f.percent(stats.lossRate, 1)} losses, ${f.percent(stats.earlyRTVRate, 1)} RTVs
-[#CCFFCC]Average playtime: ${formatTime(stats.averagePlaytime)}
-[#CCFFCC]Shortest win time: ${formatTime(stats.shortestWinTime)}
-[#CCFFCC]Most recent win: ${stats.mostRecentWin ? formatTimestamp(stats.mostRecentWin) : "[red]none[]"}`,
-			survival: `\
-[#CCFFCC]Highest wave reached: ${stats.highestWave}
-[#CCFFCC]Average wave reached: ${stats.averageWave}
-[#CCFFCC]Total runs: ${stats.allRunCount} (${stats.earlyRTVs} RTVs)
-[#CCFFCC]RTV rate: ${f.percent(stats.earlyRTVRate, 1)}
-[#CCFFCC]Average duration: ${formatTime(stats.averagePlaytime)}
-[#CCFFCC]Longest duration: ${formatTime(stats.longestTime)}`,
-			pvp: `\
-[#CCFFCC]Total runs: ${stats.allRunCount} (${stats.earlyRTVs} RTVs)
-[#CCFFCC]Team win rates: ${Object.entries(stats.teamWinRate).map(([team, rate]) => `${team} ${f.percent(rate, 1)}`).join(", ")}
-[#CCFFCC]RTV rate: ${f.percent(stats.earlyRTVRate, 1)}
-[#CCFFCC]Average match duration: ${formatTime(stats.averagePlaytime)}
-[#CCFFCC]Shortest match duration: ${formatTime(stats.shortestWinTime)}`,
-			hexed: `\
-[#CCFFCC]Total runs: ${stats.allRunCount} (${stats.earlyRTVs} RTVs)
-[#CCFFCC]RTV rate: ${f.percent(stats.earlyRTVRate, 1)}
-[#CCFFCC]Average match duration: ${formatTime(stats.averagePlaytime)}
-[#CCFFCC]Shortest match duration: ${formatTime(stats.shortestWinTime)}`,
-			sandbox: `\
-[#CCFFCC]Total plays: ${stats.allRunCount}
-[#CCFFCC]Average play time: ${formatTime(stats.averagePlaytime)}
-[#CCFFCC]Shortest play time: ${formatTime(stats.shortestTime)}`,
+			// 			attack: `\
+			// [#CCFFCC]Total runs: ${stats.allRunCount} (${stats.victories} wins, ${stats.totalLosses} losses, ${stats.earlyRTVs} RTVs)
+			// [#CCFFCC]Outcomes: ${f.percent(stats.winRate, 1)} wins, ${f.percent(stats.lossRate, 1)} losses, ${f.percent(stats.earlyRTVRate, 1)} RTVs
+			// [#CCFFCC]Average playtime: ${formatTime(stats.averagePlaytime)}
+			// [#CCFFCC]Shortest win time: ${formatTime(stats.shortestWinTime)}
+			// [#CCFFCC]Most recent win: ${stats.mostRecentWin ? formatTimestamp(stats.mostRecentWin) : "[red]none[]"}`,
+			attack: i18n(`maps.attack.stats`, locale, stats.allRunCount, stats.victories, stats.totalLosses, stats.earlyRTVs, f.percent(stats.winRate, 1), f.percent(stats.lossRate, 1), f.percent(stats.earlyRTVRate, 1), formatTimeLocalize(stats.averagePlaytime, locale), formatTimeLocalize(stats.shortestWinTime, locale), stats.mostRecentWin ? formatTimestamp(stats.mostRecentWin, locale) : i18n(`maps.none`, locale)),
+			// survival: `\
+			// [#CCFFCC]Highest wave reached: ${stats.highestWave}
+			// [#CCFFCC]Average wave reached: ${stats.averageWave}
+			// [#CCFFCC]Total runs: ${stats.allRunCount} (${stats.earlyRTVs} RTVs)
+			// [#CCFFCC]RTV rate: ${f.percent(stats.earlyRTVRate, 1)}
+			// [#CCFFCC]Average duration: ${formatTime(stats.averagePlaytime)}
+			// [#CCFFCC]Longest duration: ${formatTime(stats.longestTime)}`,
+			survival: i18n(`maps.survival.stats`, locale, stats.highestWave, stats.averageWave, stats.allRunCount, stats.earlyRTVs, f.percent(stats.earlyRTVRate, 1), formatTimeLocalize(stats.averagePlaytime, locale), formatTimeLocalize(stats.longestTime, locale)),
+			// 			pvp: `\
+			// [#CCFFCC]Total runs: ${stats.allRunCount} (${stats.earlyRTVs} RTVs)
+			// [#CCFFCC]Team win rates: ${Object.entries(stats.teamWinRate).map(([team, rate]) => `${team} ${f.percent(rate, 1)}`).join(", ")}
+			// [#CCFFCC]RTV rate: ${f.percent(stats.earlyRTVRate, 1)}
+			// [#CCFFCC]Average match duration: ${formatTime(stats.averagePlaytime)}
+			// [#CCFFCC]Shortest match duration: ${formatTime(stats.shortestWinTime)}`,
+			pvp: i18n(`maps.pvp.stats`, locale, stats.allRunCount, stats.earlyRTVs, Object.entries(stats.teamWinRate).map(([team, rate]) => `${i18n(team, locale)} ${f.percent(rate, 1)}`).join(`, `), f.percent(stats.earlyRTVRate, 1), formatTimeLocalize(stats.averagePlaytime, locale), formatTimeLocalize(stats.shortestWinTime, locale)),
+			// 			hexed: `\
+			// [#CCFFCC]Total runs: ${stats.allRunCount} (${stats.earlyRTVs} RTVs)
+			// [#CCFFCC]RTV rate: ${f.percent(stats.earlyRTVRate, 1)}
+			// [#CCFFCC]Average match duration: ${formatTime(stats.averagePlaytime)}
+			// [#CCFFCC]Shortest match duration: ${formatTime(stats.shortestWinTime)}`,
+			hexed: i18n(`maps.hexed.stats`, locale, stats.allRunCount, stats.earlyRTVs, f.percent(stats.earlyRTVRate, 1), formatTime(stats.averagePlaytime), formatTime(stats.shortestWinTime)),
+			// 			sandbox: `\
+			// [#CCFFCC]Total plays: ${stats.allRunCount}
+			// [#CCFFCC]Average play time: ${formatTime(stats.averagePlaytime)}
+			// [#CCFFCC]Shortest play time: ${formatTime(stats.shortestTime)}`,
+			sandbox: i18n(`maps.sandbox.stats`, locale, stats.allRunCount, formatTimeLocalize(stats.averagePlaytime, locale), formatTimeLocalize(stats.shortestTime, locale))
 		}, "");
-		return (`\
-[coral]${map.name()}
-[gray](${map.file.name()})
+// 		return (`\
+// [coral]${map.name()}
+// [gray](${map.file.name()})
 
-[accent]Map by: [white]${map.author()}
-[accent]Description: [white]${map.description()}
-[accent]Size: [white]${map.width}x${map.height}
-[accent]Last updated: [white]${new Date(map.file.lastModified()).toLocaleDateString()}
-[accent]BvB allowed: ${f.boolGood(rules.placeRangeCheck)}, unit item transfer allowed: ${f.boolGood(rules.onlyDepositCore)}
+// [accent]Map by: [white]${map.author()}
+// [accent]Description: [white]${map.description()}
+// [accent]Size: [white]${map.width}x${map.height}
+// [accent]Last updated: [white]${new Date(map.file.lastModified()).toLocaleDateString()}
+// [accent]BvB allowed: ${f.boolGood(rules.placeRangeCheck)}, unit item transfer allowed: ${f.boolGood(rules.onlyDepositCore)}
 
-${modeSpecificStats}
-[#CCFFCC]Longest play time: ${formatTime(stats.longestTime)}
-[#CCFFCC]Average player count: ${f.number(stats.averageHighestPlayerCount, 1)}`
-		);
+// ${modeSpecificStats}
+// [#CCFFCC]Longest play time: ${formatTime(stats.longestTime)}
+// [#CCFFCC]Average player count: ${f.number(stats.averageHighestPlayerCount, 1)}`
+		return i18n(`maps.generalinfo`, locale, map.name(), map.file.name(), map.author(), map.description(), map.width, map.height, new Date(map.file.lastModified()).toLocaleDateString(locale), f.boolGoodLocalize(!rules.placeRangeCheck, locale), f.boolGoodLocalize(!rules.onlyDepositCore, locale), modeSpecificStats, formatTimeLocalize(stats.longestTime, locale), f.numberLocalize(stats.averageHighestPlayerCount, locale, 1));
 	}
 }

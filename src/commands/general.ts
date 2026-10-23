@@ -205,7 +205,7 @@ export const commands = commandList({
 	}),
 
 	aoelog: command(() => {
-		let allowedActions = [
+		const allowedActions = [
 			"built", "broke", "rotated", "killed", "configured", "pay-dropped", "picked up", "controlled"
 		];
 		const cachedPointMap = Object.create(null) as Partial<Record<string, [number, number]>>;
@@ -214,15 +214,14 @@ export const commands = commandList({
 			description: 'Checks the history of all tiles in the selected region. Can be filtered by action.',
 			perm: Perm.none,
 			handler({args, sender, outputSuccess, currentTapMode, handleTaps, localize}) {
-				allowedActions = allowedActions.map(a => i18n(`command.tilelog.action.${a ? a.replace(" ", "").replace("-","") : ""}`, sender.locale));
-				if(currentTapMode === "off" || args.action || args.amount) {
-					if(args.action && !allowedActions.includes(args.action))
-						fail(localize(`command.aoelog.invalid`, allowedActions.join(",  ")));
-					if(args.amount && args.amount > 100) fail(localize`command.aoelog.toobiglimit`);
+				const localizedActions = allowedActions.map(a => i18n(`command.tilelog.action.${a ? a.replace(" ", "").replace("-","") : ""}`, sender.locale));
+				if(currentTapMode === "off" || args.action || args.amount) {					if(args.action && !allowedActions.includes(args.action) && !localizedActions.includes(args.action))
+					fail(localize(`command.aoelog.invalid`, allowedActions.join(",  ")));
+				if(args.amount && args.amount > 100) fail(localize`command.aoelog.toobiglimit`);
 
-					cachedPointMap[sender.uuid] = undefined;
-					handleTaps("on");
-					outputSuccess(localize`command.aoelog.enabled`);
+				cachedPointMap[sender.uuid] = undefined;
+				handleTaps("on");
+				outputSuccess(localize`command.aoelog.enabled`);
 				} else {
 					handleTaps("off");
 					outputSuccess(localize`command.aoelog.disabled`);
@@ -1162,15 +1161,15 @@ Win rate: ${stats.gamesWon / stats.gamesFinished}`
 		args: ["map:map?"],
 		perm: Perm.none,
 		description: "Displays information about a map.",
-		handler({output, args:{map}, f, sender}){
+		handler({output, args:{map}, f, sender, localize}){
 			if(map){
 				const fmap = FMap.getCreate(map)
-					?? fail("Map data is still being loaded, try again later.");
-				output(fmap.displayStats(f)!);
+					?? fail(localize`command.mapinfo.notloaded`);
+				output(fmap.displayStats(f, sender.locale)!);
 			} else {
 				void Menu.textPages(sender, Vars.maps.customMaps().map(m =>
-					["Map information", () => FMap.getCreate(m)?.displayStats(f) ?? fail("Map data is still being loaded, try again later.")] as const
-				).toArray(), [], {
+					[localize`command.mapinfo.menu.title`, () => FMap.getCreate(m)?.displayStats(f, sender.locale) ?? fail(localize`command.mapinfo.notloaded`)] as const
+				).toArray(), sender.locale, [], {
 					startPage: Vars.maps.customMaps().toArray().indexOf(Vars.state.map),
 				});
 			}
@@ -1184,7 +1183,7 @@ Win rate: ${stats.gamesWon / stats.gamesFinished}`
 		}),
 		description: "Sets the gamemode.",
 		requirements: ({sender}) => [Req.cooldownGlobal(sender.hasPerm('trusted') ? 10_000 : 30_000)],
-		handler({args, sender, outputSuccess}){
+		handler({args, sender, outputSuccess, localize}){
 			//Unpause
 			Vars.state.set(GameState.State.playing);
 			switch(args.mode){
@@ -1211,10 +1210,11 @@ Win rate: ${stats.gamesWon / stats.gamesFinished}`
 					Vars.state.rules.waves = false;
 					Vars.state.rules.infiniteResources = true;
 					break;
-				default: fail(`Invalid mode, valid modes are: attack, survival, pvp`);
+				default: fail(localize`command.gamemode.invalid`);
 			}
-			Call.sendMessage(`[orange]Player ${sender.prefixedName}[orange] changed the gamemode to ${args.mode}.`);
-			outputSuccess(`Changed mode to ${args.mode}`);
+			// Call.sendMessage(`[orange]Player ${sender.prefixedName}[orange] changed the gamemode to ${args.mode}.`);
+			sendLocMessageCB(`command.gamemode.changed`, (_, localize) => [sender.prefixedName, localize(args.mode, [])]);
+			outputSuccess(localize(`command.gamemode.success`, localize(args.mode)));
 			Call.setRules(Vars.state.rules);
 		}
 	},
@@ -1226,14 +1226,14 @@ Win rate: ${stats.gamesWon / stats.gamesFinished}`
 			sandbox: Perm.play
 		}),
 		requirements: ({sender}) => [!sender.hasPerm("admin") && Req.cooldown(1500), Req.unitExists()].filter(Boolean),
-		handler({args, sender, f, outputSuccess}){
+		handler({args, sender, f, outputSuccess, localize}){
 			const { team, x, y } = sender.unit()!;
 			const unit = args.base.create(team);
 			unit.type = args.type;
 			unit.maxHealth = args.type.health; //because half-dead units aren't fun
 			unit.set(x, y);
 			unit.add();
-			outputSuccess(f`Spawned a ${args.type} that is partly a ${args.base}.`);
+			outputSuccess(localize(`command.mixunit.success`, args.type, args.base));
 		}
 	},
 
@@ -1251,7 +1251,7 @@ Win rate: ${stats.gamesWon / stats.gamesFinished}`
 				await Menu.pagedList(sender, localize`command.achievement.menu.title`, localize`command.achievement.menu.description`, matching, {
 					onCancel: "reject",
 					columns: 2,
-					optionStringifier: a => `${a.icon}[] ${a.name}`
+					optionStringifier: a => `${a.icon}[] ${localize(`achievement.${a.sid}.name`)}`
 				})
 			: matching[0];
 			
@@ -1277,19 +1277,20 @@ Win rate: ${stats.gamesWon / stats.gamesFinished}`
 		args: ["target:player?"],
 		description: "Shows all achievements in a paged menu.",
 		perm: Perm.none,
-		async handler({sender, args: { target = sender }, f}){
+		async handler({sender, args: { target = sender }, f, localize}){
 			await Menu.textPages(
 				sender,
 				Achievement.all.filter(a => !a.hidden || a.has(target))
 					.map(a => [
-						`${a.icon}[] ${a.name}`,
+						`${a.icon}[] ${localize(`achievement.${a.sid}.name`)}`,
 						() => FColor.achievement`\
 ${a.description + (a.extendedDescription ? ("\n" + `[gray]${a.extendedDescription}`) : "")}
 Allowed modes: ${a.modesText}
 Unlocked: ${f.boolGood(a.has(target))}
-${a.hidden ? "This achievement is secret." : ""}\
+${a.hidden ? localize("command.achievement.hidden") : ""}\
 `
-					])
+					]),
+				sender.locale
 			);
 		}
 	},

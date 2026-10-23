@@ -87,7 +87,7 @@ function minToANSI(str: string)
 		maroon: "b03060",
 		accent: "ffd37f"
 	};
-	const colortagRegex = /\[\[?([#0-9a-zA-Z]*)\]/g;
+	const colortagRegex = /\[+([#0-9a-zA-Z]*)\]/g;
 	const m = str.match(colortagRegex);
 	if(!m) return str;
 	let match: RegExpExecArray | null;
@@ -99,7 +99,8 @@ function minToANSI(str: string)
 		// if(out.length == 0) out += str.slice(temp, match.index);
 		out += str.slice(temp, match.index);
 		temp = colortagRegex.lastIndex;
-		if(match[0].includes("[["))
+		const leftBracketCount = match[0].split('').reduce((acc, letter) => {if(letter == '[') acc++; return acc;}, 0);
+		if(leftBracketCount % 2 == 0)
 		{
 			out += match[0];
 			continue;
@@ -111,12 +112,12 @@ function minToANSI(str: string)
 		if(colorNames[match[1]])
 		{
 			const [r, g, b] = hexToRgb(colorNames[match[1]]);
-			out += `\x1b[38;2;${r};${g};${b}m`;
+			out += `${'['.repeat(Math.trunc((leftBracketCount - 1) / 2))}\x1b[38;2;${r};${g};${b}m`;
 		}
 		else if(str.match(/#?([A-Fa-f0-9]{6})/))
 		{
 			const [r, g, b] = hexToRgb(match[1]);
-			out += `\x1b[38;2;${r};${g};${b}m`;
+			out += `${'['.repeat(Math.trunc((leftBracketCount - 1) / 2))}\x1b[38;2;${r};${g};${b}m`;
 		}
 		prevPrevColor = prevColor;
 		prevColor = match[1];

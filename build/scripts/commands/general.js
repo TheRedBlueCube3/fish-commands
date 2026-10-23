@@ -362,9 +362,9 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
             perm: commands_1.Perm.none,
             handler: function (_a) {
                 var args = _a.args, sender = _a.sender, outputSuccess = _a.outputSuccess, currentTapMode = _a.currentTapMode, handleTaps = _a.handleTaps, localize = _a.localize;
-                allowedActions = allowedActions.map(function (a) { return (0, i18n_1.i18n)("command.tilelog.action.".concat(a ? a.replace(" ", "").replace("-", "") : ""), sender.locale); });
+                var localizedActions = allowedActions.map(function (a) { return (0, i18n_1.i18n)("command.tilelog.action.".concat(a ? a.replace(" ", "").replace("-", "") : ""), sender.locale); });
                 if (currentTapMode === "off" || args.action || args.amount) {
-                    if (args.action && !allowedActions.includes(args.action))
+                    if (args.action && !allowedActions.includes(args.action) && !localizedActions.includes(args.action))
                         (0, commands_1.fail)(localize("command.aoelog.invalid", allowedActions.join(",  ")));
                     if (args.amount && args.amount > 100)
                         (0, commands_1.fail)(localize(templateObject_7 || (templateObject_7 = __makeTemplateObject(["command.aoelog.toobiglimit"], ["command.aoelog.toobiglimit"]))));
@@ -1393,15 +1393,15 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
         description: "Displays information about a map.",
         handler: function (_a) {
             var _b;
-            var output = _a.output, map = _a.args.map, f = _a.f, sender = _a.sender;
+            var output = _a.output, map = _a.args.map, f = _a.f, sender = _a.sender, localize = _a.localize;
             if (map) {
-                var fmap = (_b = maps_1.FMap.getCreate(map)) !== null && _b !== void 0 ? _b : (0, commands_1.fail)("Map data is still being loaded, try again later.");
-                output(fmap.displayStats(f));
+                var fmap = (_b = maps_1.FMap.getCreate(map)) !== null && _b !== void 0 ? _b : (0, commands_1.fail)(localize(templateObject_52 || (templateObject_52 = __makeTemplateObject(["command.mapinfo.notloaded"], ["command.mapinfo.notloaded"]))));
+                output(fmap.displayStats(f, sender.locale));
             }
             else {
                 void menus_1.Menu.textPages(sender, Vars.maps.customMaps().map(function (m) {
-                    return ["Map information", function () { var _a, _b; return (_b = (_a = maps_1.FMap.getCreate(m)) === null || _a === void 0 ? void 0 : _a.displayStats(f)) !== null && _b !== void 0 ? _b : (0, commands_1.fail)("Map data is still being loaded, try again later."); }];
-                }).toArray(), [], {
+                    return [localize(templateObject_53 || (templateObject_53 = __makeTemplateObject(["command.mapinfo.menu.title"], ["command.mapinfo.menu.title"]))), function () { var _a, _b; return (_b = (_a = maps_1.FMap.getCreate(m)) === null || _a === void 0 ? void 0 : _a.displayStats(f, sender.locale)) !== null && _b !== void 0 ? _b : (0, commands_1.fail)(localize(templateObject_54 || (templateObject_54 = __makeTemplateObject(["command.mapinfo.notloaded"], ["command.mapinfo.notloaded"])))); }];
+                }).toArray(), sender.locale, [], {
                     startPage: Vars.maps.customMaps().toArray().indexOf(Vars.state.map),
                 });
             }
@@ -1417,7 +1417,7 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
             return [commands_1.Req.cooldownGlobal(sender.hasPerm('trusted') ? 10000 : 30000)];
         },
         handler: function (_a) {
-            var args = _a.args, sender = _a.sender, outputSuccess = _a.outputSuccess;
+            var args = _a.args, sender = _a.sender, outputSuccess = _a.outputSuccess, localize = _a.localize;
             //Unpause
             Vars.state.set(GameState.State.playing);
             switch (args.mode) {
@@ -1444,10 +1444,11 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
                     Vars.state.rules.waves = false;
                     Vars.state.rules.infiniteResources = true;
                     break;
-                default: (0, commands_1.fail)("Invalid mode, valid modes are: attack, survival, pvp");
+                default: (0, commands_1.fail)(localize(templateObject_55 || (templateObject_55 = __makeTemplateObject(["command.gamemode.invalid"], ["command.gamemode.invalid"]))));
             }
-            Call.sendMessage("[orange]Player ".concat(sender.prefixedName, "[orange] changed the gamemode to ").concat(args.mode, "."));
-            outputSuccess("Changed mode to ".concat(args.mode));
+            // Call.sendMessage(`[orange]Player ${sender.prefixedName}[orange] changed the gamemode to ${args.mode}.`);
+            (0, i18n_1.sendLocMessageCB)("command.gamemode.changed", function (_, localize) { return [sender.prefixedName, localize(args.mode, [])]; });
+            outputSuccess(localize("command.gamemode.success", localize(args.mode)));
             Call.setRules(Vars.state.rules);
         }
     }, mixunit: {
@@ -1461,14 +1462,14 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
             return [!sender.hasPerm("admin") && commands_1.Req.cooldown(1500), commands_1.Req.unitExists()].filter(Boolean);
         },
         handler: function (_a) {
-            var args = _a.args, sender = _a.sender, f = _a.f, outputSuccess = _a.outputSuccess;
+            var args = _a.args, sender = _a.sender, f = _a.f, outputSuccess = _a.outputSuccess, localize = _a.localize;
             var _b = sender.unit(), team = _b.team, x = _b.x, y = _b.y;
             var unit = args.base.create(team);
             unit.type = args.type;
             unit.maxHealth = args.type.health; //because half-dead units aren't fun
             unit.set(x, y);
             unit.add();
-            outputSuccess(f(templateObject_52 || (templateObject_52 = __makeTemplateObject(["Spawned a ", " that is partly a ", "."], ["Spawned a ", " that is partly a ", "."])), args.type, args.base));
+            outputSuccess(localize("command.mixunit.success", args.type, args.base));
         }
     }, achievement: {
         args: ["name:string?", "verbose:boolean?"],
@@ -1486,10 +1487,10 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
                             if (matching.length == 0)
                                 (0, commands_1.fail)(localize("command.achievement.notfound", name));
                             if (!(matching.length > 2)) return [3 /*break*/, 2];
-                            return [4 /*yield*/, menus_1.Menu.pagedList(sender, localize(templateObject_53 || (templateObject_53 = __makeTemplateObject(["command.achievement.menu.title"], ["command.achievement.menu.title"]))), localize(templateObject_54 || (templateObject_54 = __makeTemplateObject(["command.achievement.menu.description"], ["command.achievement.menu.description"]))), matching, {
+                            return [4 /*yield*/, menus_1.Menu.pagedList(sender, localize(templateObject_56 || (templateObject_56 = __makeTemplateObject(["command.achievement.menu.title"], ["command.achievement.menu.title"]))), localize(templateObject_57 || (templateObject_57 = __makeTemplateObject(["command.achievement.menu.description"], ["command.achievement.menu.description"]))), matching, {
                                     onCancel: "reject",
                                     columns: 2,
-                                    optionStringifier: function (a) { return "".concat(a.icon, "[] ").concat(a.name); }
+                                    optionStringifier: function (a) { return "".concat(a.icon, "[] ").concat(localize("achievement.".concat(a.sid, ".name"))); }
                                 })];
                         case 1:
                             _c = _g.sent();
@@ -1514,14 +1515,14 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
         perm: commands_1.Perm.none,
         handler: function (_a) {
             return __awaiter(this, arguments, void 0, function (_b) {
-                var sender = _b.sender, _c = _b.args.target, target = _c === void 0 ? sender : _c, f = _b.f;
+                var sender = _b.sender, _c = _b.args.target, target = _c === void 0 ? sender : _c, f = _b.f, localize = _b.localize;
                 return __generator(this, function (_d) {
                     switch (_d.label) {
                         case 0: return [4 /*yield*/, menus_1.Menu.textPages(sender, achievements_1.Achievement.all.filter(function (a) { return !a.hidden || a.has(target); })
                                 .map(function (a) { return [
-                                "".concat(a.icon, "[] ").concat(a.name),
-                                function () { return config_1.FColor.achievement(templateObject_55 || (templateObject_55 = __makeTemplateObject(["", "\nAllowed modes: ", "\nUnlocked: ", "\n", ""], ["\\\n", "\nAllowed modes: ", "\nUnlocked: ", "\n", "\\\n"])), a.description + (a.extendedDescription ? ("\n" + "[gray]".concat(a.extendedDescription)) : ""), a.modesText, f.boolGood(a.has(target)), a.hidden ? "This achievement is secret." : ""); }
-                            ]; }))];
+                                "".concat(a.icon, "[] ").concat(localize("achievement.".concat(a.sid, ".name"))),
+                                function () { return config_1.FColor.achievement(templateObject_58 || (templateObject_58 = __makeTemplateObject(["", "\nAllowed modes: ", "\nUnlocked: ", "\n", ""], ["\\\n", "\nAllowed modes: ", "\nUnlocked: ", "\n", "\\\n"])), a.description + (a.extendedDescription ? ("\n" + "[gray]".concat(a.extendedDescription)) : ""), a.modesText, f.boolGood(a.has(target)), a.hidden ? localize("command.achievement.hidden") : ""); }
+                            ]; }), sender.locale)];
                         case 1:
                             _d.sent();
                             return [2 /*return*/];
@@ -1553,9 +1554,9 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
                             _e.label = 1;
                         case 1:
                             if (!true) return [3 /*break*/, 3];
-                            return [4 /*yield*/, menus_1.Menu.scroll2D(sender, "Achievements", a ? config_1.FColor.achievement(templateObject_56 || (templateObject_56 = __makeTemplateObject(["", " ", "\n\n", "\n\nAllowed modes: ", "\nUnlocked: ", "\n", ""], ["\\\n", " ", "\n\n", "\n\nAllowed modes: ", "\nUnlocked: ", "\n", "\\\n"])), a.icon, a.name, a.description + (a.extendedDescription ? ("\n" + "[gray]".concat(a.extendedDescription)) : ""), a.modesText, f.boolGood(a.has(target)), a.hidden ? "This achievement is secret." : "") :
+                            return [4 /*yield*/, menus_1.Menu.scroll2D(sender, "Achievements", a ? config_1.FColor.achievement(templateObject_59 || (templateObject_59 = __makeTemplateObject(["", " ", "\n\n", "\n\nAllowed modes: ", "\nUnlocked: ", "\n", ""], ["\\\n", " ", "\n\n", "\n\nAllowed modes: ", "\nUnlocked: ", "\n", "\\\n"])), a.icon, a.name, a.description + (a.extendedDescription ? ("\n" + "[gray]".concat(a.extendedDescription)) : ""), a.modesText, f.boolGood(a.has(target)), a.hidden ? "This achievement is secret." : "") :
                                     (target == sender ? "You have ".concat(numberAchievements, "/").concat(totalAchievements, " achievements.")
-                                        : config_1.FColor.achievement(templateObject_57 || (templateObject_57 = __makeTemplateObject(["Player ", " has ", "/", " achievements."], ["Player ", " has ", "/", " achievements."])), target.prefixedName, numberAchievements, totalAchievements))
+                                        : config_1.FColor.achievement(templateObject_60 || (templateObject_60 = __makeTemplateObject(["Player ", " has ", "/", " achievements."], ["Player ", " has ", "/", " achievements."])), target.prefixedName, numberAchievements, totalAchievements))
                                         + "\nClick an achievement icon to show more information.", options, { onCancel: "reject", columns: 5, rows: 4, getCenterText: function () { return String.fromCharCode(Iconc.settings); }, x: x, y: y })];
                         case 2:
                             //the loop will be aborted if the menu is cancelled (promise will reject)
@@ -1581,14 +1582,14 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
                 duration !== null && duration !== void 0 ? duration : (duration = funcs_1.Duration.minutes(2));
             }
             if (duration > funcs_1.Duration.hours(8))
-                (0, commands_1.fail)(localize(templateObject_58 || (templateObject_58 = __makeTemplateObject(["command.skipconfirm.maxduration"], ["command.skipconfirm.maxduration"]))));
+                (0, commands_1.fail)(localize(templateObject_61 || (templateObject_61 = __makeTemplateObject(["command.skipconfirm.maxduration"], ["command.skipconfirm.maxduration"]))));
             sender.skipConfirm = Date.now() + duration;
             if (Date.now() < sender.skipConfirm)
                 outputSuccess(localize("command.skipconfirm.success", (0, utils_1.formatTimeLocalize)(duration, sender.locale)));
             else
                 outputSuccess("Re-enabled confirm popups.");
             if (duration > funcs_1.Duration.hours(1))
-                output(localize(templateObject_59 || (templateObject_59 = __makeTemplateObject(["command.skipconfirm.warning"], ["command.skipconfirm.warning"]))));
+                output(localize(templateObject_62 || (templateObject_62 = __makeTemplateObject(["command.skipconfirm.warning"], ["command.skipconfirm.warning"]))));
         }
     }, copy: {
         args: [],
@@ -1602,18 +1603,18 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
                     switch (_d.label) {
                         case 0:
                             if (!sender.copyOptions || sender.copyOptions.length == 0)
-                                (0, commands_1.fail)(localize(templateObject_60 || (templateObject_60 = __makeTemplateObject(["command.copy.nothing"], ["command.copy.nothing"]))));
+                                (0, commands_1.fail)(localize(templateObject_63 || (templateObject_63 = __makeTemplateObject(["command.copy.nothing"], ["command.copy.nothing"]))));
                             if (!(sender.copyOptions.length == 1)) return [3 /*break*/, 1];
                             _c = sender.copyOptions[0];
                             return [3 /*break*/, 3];
-                        case 1: return [4 /*yield*/, menus_1.Menu.pagedList(sender, localize(templateObject_61 || (templateObject_61 = __makeTemplateObject(["command.copy.menu.title"], ["command.copy.menu.title"]))), localize(templateObject_62 || (templateObject_62 = __makeTemplateObject(["command.copy.menu.description"], ["command.copy.menu.description"]))), sender.copyOptions, { optionStringifier: funcs_1.escapeStringColorsClient, columns: 1 })];
+                        case 1: return [4 /*yield*/, menus_1.Menu.pagedList(sender, localize(templateObject_64 || (templateObject_64 = __makeTemplateObject(["command.copy.menu.title"], ["command.copy.menu.title"]))), localize(templateObject_65 || (templateObject_65 = __makeTemplateObject(["command.copy.menu.description"], ["command.copy.menu.description"]))), sender.copyOptions, { optionStringifier: funcs_1.escapeStringColorsClient, columns: 1 })];
                         case 2:
                             _c = _d.sent();
                             _d.label = 3;
                         case 3:
                             response = _c;
                             Call.copyToClipboard(sender.con(), response);
-                            outputSuccess(localize(templateObject_63 || (templateObject_63 = __makeTemplateObject(["command.copy.success"], ["command.copy.success"]))));
+                            outputSuccess(localize(templateObject_66 || (templateObject_66 = __makeTemplateObject(["command.copy.success"], ["command.copy.success"]))));
                             return [2 /*return*/];
                     }
                 });
@@ -1628,7 +1629,7 @@ exports.commands = (0, commands_1.commandList)(__assign(__assign({ about: {
             var _b = _a.args, target = _b.target, string = _b.string, sender = _a.sender, f = _a.f, outputSuccess = _a.outputSuccess;
             Call.copyToClipboard(target.con(), string);
             target.sendMessage("[accent]Copy: ".concat(sender.prefixedName, "[accent] sent you some text to copy."));
-            outputSuccess(f(templateObject_64 || (templateObject_64 = __makeTemplateObject(["Sent text to ", ""], ["Sent text to ", ""])), target));
+            outputSuccess(f(templateObject_67 || (templateObject_67 = __makeTemplateObject(["Sent text to ", ""], ["Sent text to ", ""])), target));
         }
     } }));
-var templateObject_1, templateObject_2, templateObject_3, templateObject_4, templateObject_5, templateObject_6, templateObject_7, templateObject_8, templateObject_9, templateObject_10, templateObject_11, templateObject_12, templateObject_13, templateObject_14, templateObject_15, templateObject_16, templateObject_17, templateObject_18, templateObject_19, templateObject_20, templateObject_21, templateObject_22, templateObject_23, templateObject_24, templateObject_25, templateObject_26, templateObject_27, templateObject_28, templateObject_29, templateObject_30, templateObject_31, templateObject_32, templateObject_33, templateObject_34, templateObject_35, templateObject_36, templateObject_37, templateObject_38, templateObject_39, templateObject_40, templateObject_41, templateObject_42, templateObject_43, templateObject_44, templateObject_45, templateObject_46, templateObject_47, templateObject_48, templateObject_49, templateObject_50, templateObject_51, templateObject_52, templateObject_53, templateObject_54, templateObject_55, templateObject_56, templateObject_57, templateObject_58, templateObject_59, templateObject_60, templateObject_61, templateObject_62, templateObject_63, templateObject_64;
+var templateObject_1, templateObject_2, templateObject_3, templateObject_4, templateObject_5, templateObject_6, templateObject_7, templateObject_8, templateObject_9, templateObject_10, templateObject_11, templateObject_12, templateObject_13, templateObject_14, templateObject_15, templateObject_16, templateObject_17, templateObject_18, templateObject_19, templateObject_20, templateObject_21, templateObject_22, templateObject_23, templateObject_24, templateObject_25, templateObject_26, templateObject_27, templateObject_28, templateObject_29, templateObject_30, templateObject_31, templateObject_32, templateObject_33, templateObject_34, templateObject_35, templateObject_36, templateObject_37, templateObject_38, templateObject_39, templateObject_40, templateObject_41, templateObject_42, templateObject_43, templateObject_44, templateObject_45, templateObject_46, templateObject_47, templateObject_48, templateObject_49, templateObject_50, templateObject_51, templateObject_52, templateObject_53, templateObject_54, templateObject_55, templateObject_56, templateObject_57, templateObject_58, templateObject_59, templateObject_60, templateObject_61, templateObject_62, templateObject_63, templateObject_64, templateObject_65, templateObject_66, templateObject_67;

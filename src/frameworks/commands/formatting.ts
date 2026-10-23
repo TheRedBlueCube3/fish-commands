@@ -128,12 +128,22 @@ export const fFunctions = {
 		];
 	},
 	percent(value:number, decimals = 0){
-		if(isNaN(value) || !isFinite(value)) return ["[gray]N/A[]", "N/A"];
+		if(isNaN(value) || !isFinite(value)) return [`[gray]N/A[]`, `N/A`];
 		const percent = (value * 100).toFixed(decimals) + "%";
 		return [`${percent}`, `${percent}`];
 	},
 	number(value:number, decimals:number | null = null){
-		if(isNaN(value) || !isFinite(value)) return ["[gray]N/A[]", "N/A"];
+		if(isNaN(value) || !isFinite(value)) return [`[gray]N/A[]`, `N/A`];
+		if(decimals !== null) return [value.toFixed(decimals), value.toFixed(decimals)];
+		return [value.toString(), value.toString()];
+	},
+	percentLocalize(value:number, locale: string, decimals = 0){
+		if(isNaN(value) || !isFinite(value)) return [`[gray]${i18n(`na`, locale)}[]`, `${i18n(`na`, locale)}`];
+		const percent = (value * 100).toFixed(decimals) + "%";
+		return [`${percent}`, `${percent}`];
+	},
+	numberLocalize(value:number, locale: string, decimals:number | null = null){
+		if(isNaN(value) || !isFinite(value)) return [`[gray]${i18n(`na`, locale)}[]`, `${i18n(`na`, locale)}`];
 		if(decimals !== null) return [value.toFixed(decimals), value.toFixed(decimals)];
 		return [value.toString(), value.toString()];
 	}

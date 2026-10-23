@@ -79,6 +79,7 @@ exports.memoizeChatFilter = memoizeChatFilter;
 exports.formatTimeLocalize = formatTimeLocalize;
 exports.formatTime = formatTime;
 exports.formatTimeShort = formatTimeShort;
+exports.formatTimeShortLocalize = formatTimeShortLocalize;
 exports.formatModeName = formatModeName;
 exports.formatTimestampFull = formatTimestampFull;
 exports.formatTimestamp = formatTimestamp;
@@ -225,9 +226,27 @@ function formatTimeShort(time) {
         (seconds || time < 1000) && "".concat(seconds, "s"),
     ].filter(Boolean).join(" ");
 }
+function formatTimeShortLocalize(time, locale) {
+    if (globals_1.maxTime - (time + Date.now()) < 20000)
+        return (0, i18n_1.i18n)("time.forever", locale);
+    if (isNaN(time))
+        return "N/A";
+    var months = Math.floor(time / (30 * 24 * 60 * 60 * 1000));
+    var days = Math.floor((time % (30 * 24 * 60 * 60 * 1000)) / (24 * 60 * 60 * 1000));
+    var hours = Math.floor((time % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+    var minutes = Math.floor((time % (60 * 60 * 1000)) / (60 * 1000));
+    var seconds = Math.floor((time % (60 * 1000)) / (1000));
+    return [
+        months && (0, i18n_1.i18n)("time.month.short", locale, months),
+        days && (0, i18n_1.i18n)("time.day.short", locale, days),
+        hours && (0, i18n_1.i18n)("time.hour.short", locale, hours),
+        minutes && (0, i18n_1.i18n)("time.minute.short", locale, minutes),
+        (seconds || time < 1000) && (0, i18n_1.i18n)("time.second.short", locale, seconds),
+    ].filter(Boolean).join(" ");
+}
 //TODO move this data to be right next to Mode
-function formatModeName(name) {
-    return {
+function formatModeName(name, locale) {
+    return locale ? (0, i18n_1.i18n)(name, locale) : {
         "attack": "Attack",
         "survival": "Survival",
         "hexed": "Hexed",
@@ -238,12 +257,12 @@ function formatModeName(name) {
         "minigame": "Minigames",
     }[name];
 }
-function formatTimestampFull(time) {
+function formatTimestampFull(time, locale) {
     var date = new Date(time);
-    return "".concat(date.toDateString(), ", ").concat(date.toTimeString());
+    return "".concat(date.toLocaleDateString(locale), ", ").concat(date.toLocaleTimeString(locale));
 }
-function formatTimestamp(time) {
-    return new Date(time).toLocaleString();
+function formatTimestamp(time, locale) {
+    return new Date(time).toLocaleString(locale);
 }
 function formatTimestampShort(time) {
     var date = new Date(time);

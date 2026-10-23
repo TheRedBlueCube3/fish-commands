@@ -6,6 +6,7 @@ For usage information, see docs/framework-usage-guide.md
 For maintenance information, see docs/frameworks.md
 */
 
+import { i18n } from "/frameworks/i18n";
 import { fail } from "/frameworks/commands";
 import { to2DArray } from "/funcs";
 import { FishPlayer } from "/players";
@@ -314,7 +315,7 @@ export const Menu = {
 	 * Shows different text based on the current page.
 	 */
 	textPages<TCancelBehavior extends MenuCancelOption, TOpt extends string>(
-		this:void, target:FishPlayer<true>, pages:Array<readonly [title:string, description:() => string]>,
+		this:void, target:FishPlayer<true>, pages:Array<readonly [title:string, description:() => string]>, locale: string, 
 		options: TOpt[] = [],
 		cfg: Pick<MenuOptions<never, TCancelBehavior>, "onCancel"> & {
 			/** Index or title of the initial page. */
@@ -334,11 +335,11 @@ export const Menu = {
 					{ data: ["right", 1], text: `[${index == pages.length - 1 ? "gray" : "accent"}]-->` },
 					{ data: ["right", pageSkipSize], text: `[${index == pages.length - 1 ? "gray" : "accent"}]>>>` },
 				],[
-					{ data: ["numbers"], text: `[accent]Page ${index + 1}/${pages.length}` },
+					{ data: ["numbers"], text: i18n(`textPages.page`, locale, index + 1, pages.length) },
 				],
 				...options.map((d, i) => [{ data: [i] as const, text: d }]),
 				[
-					{ data: ["cancel"], text: `[lightgray]Close` },
+					{ data: ["cancel"], text: i18n(`textPages.close`, locale) },
 				],
 			];
 			void Menu.buttons(target, pages[index][0], pages[index][1](), opts, {...cfg, onCancel: "null"}).then<unknown, never>(response => {

@@ -107,10 +107,29 @@ export function formatTimeShort(time:number){
 		(seconds || time < 1000) && `${seconds}s`,
 	].filter(Boolean).join(" ");
 }
+export function formatTimeShortLocalize(time:number, locale:string){
+
+	if(maxTime - (time + Date.now()) < 20000) return i18n(`time.forever`, locale);
+	if(isNaN(time)) return "N/A";
+
+	const months = Math.floor(time / (30 * 24 * 60 * 60 * 1000));
+	const days = Math.floor((time % (30 * 24 * 60 * 60 * 1000)) / (24 * 60 * 60 * 1000));
+	const hours = Math.floor((time % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+	const minutes = Math.floor((time % (60 * 60 * 1000)) / (60 * 1000));
+	const seconds = Math.floor((time % (60 * 1000)) / (1000));
+
+	return [
+		months && i18n(`time.month.short`, locale, months),
+		days && i18n(`time.day.short`, locale, days),
+		hours && i18n(`time.hour.short`, locale, hours),
+		minutes && i18n(`time.minute.short`, locale, minutes),
+		(seconds || time < 1000) && i18n(`time.second.short`, locale, seconds),
+	].filter(Boolean).join(" ");
+}
 
 //TODO move this data to be right next to Mode
-export function formatModeName(name:GamemodeName){
-	return {
+export function formatModeName(name:GamemodeName, locale?:string){
+	return locale ? i18n(name, locale) : {
 		"attack": "Attack",
 		"survival": "Survival",
 		"hexed": "Hexed",
@@ -122,13 +141,13 @@ export function formatModeName(name:GamemodeName){
 	}[name];
 }
 
-export function formatTimestampFull(time:number){
+export function formatTimestampFull(time:number, locale?:string){
 	const date = new Date(time);
-	return `${date.toDateString()}, ${date.toTimeString()}`;
+	return `${date.toLocaleDateString(locale)}, ${date.toLocaleTimeString(locale)}`;
 }
 
-export function formatTimestamp(time:number){
-	return new Date(time).toLocaleString();
+export function formatTimestamp(time:number, locale?:string){
+	return new Date(time).toLocaleString(locale);
 }
 
 export function formatTimestampShort(time:number){

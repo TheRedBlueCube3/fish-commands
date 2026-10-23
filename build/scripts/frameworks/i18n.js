@@ -29,15 +29,21 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     return to.concat(ar || Array.prototype.slice.call(from));
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.keyExists = exports.valueExists = exports.bundles = void 0;
+exports.FLocColor = exports.keyExists = exports.valueExists = exports.bundles = void 0;
 exports.i18n = i18n;
 exports.sendLocalizedMessage = sendLocalizedMessage;
 exports.sendLocalizedToast = sendLocalizedToast;
 exports.localizedLabel = localizedLabel;
 exports.sendLocMessageCB = sendLocMessageCB;
+exports.locf = locf;
+exports.i18nf = i18nf;
+exports.i18nfloc = i18nfloc;
+var globals_1 = require("/globals");
+var players_1 = require("/players");
+var ranks_1 = require("/ranks");
 //#region I18N helpers
 var handle = Vars.modDirectory.child("fish-commands/bundles/bundle");
-var createLangBundles = function (languages) { return Object.fromEntries(languages.map(function (lang) { return [lang, I18NBundle.createBundle(handle, new Locale(lang))]; })); };
+var createLangBundles = function (languages) { return Object.fromEntries(languages.map(function (lang) { return [lang, I18NBundle.createBundle(handle, new Locale(lang == "en" ? "" : lang))]; })); };
 /** The list of languages with translations in the bundle.properties files. */
 exports.bundles = createLangBundles(["en", "ru"]);
 /** Checks if the value returned by `.format` or `i18n` exists. */
@@ -112,4 +118,99 @@ function sendLocMessageCB(key, argsCB) {
     if (argsCB === void 0) { argsCB = function () { return []; }; }
     Groups.player.each(function (player) { return player.sendMessage(i18n.apply(void 0, __spreadArray([key, player.locale], __read(argsCB(player.locale, function (key, arg) { return i18n.apply(void 0, __spreadArray([key, player.locale], __read(arg), false)); })), false))); });
 }
-//#endregion
+exports.FLocColor = (function (data) {
+    return Object.fromEntries(Object.entries(data).map(function (_a) {
+        var _b = __read(_a, 2), k = _b[0], c = _b[1];
+        return [k, function (str) {
+                return str != null ?
+                    "".concat(str).concat(c, "[]")
+                    : c;
+            }
+        ];
+    }));
+})({
+    discord: "[#7289DA]",
+    /** Used for tips and welcome messages. */
+    tip: "[gold]",
+    member: "[pink]",
+    achievement: "[lime]",
+});
+function locf(args, key, locale, flocfunc) {
+    var _a, _b;
+    var reset = (_b = (_a = i18n(key, locale).match(/^\[.+?\]/)) === null || _a === void 0 ? void 0 : _a[0]) !== null && _b !== void 0 ? _b : "";
+    return args.map(function (chunk) {
+        if (!flocfunc)
+            flocfunc = function (str) { return str; };
+        var unprocessed;
+        if (chunk instanceof players_1.FishPlayer) {
+            unprocessed = "[cyan](".concat(chunk.name, "[cyan])") + reset;
+        }
+        else if (chunk instanceof ranks_1.Rank) {
+            unprocessed = "".concat(chunk.color).concat(i18n("rank.".concat(chunk.name, ".name"), locale), "[]") + reset;
+        }
+        else if (chunk instanceof ranks_1.RoleFlag) {
+            unprocessed = "".concat(chunk.color).concat(i18n("flag.".concat(chunk.name, ".name"), locale), "[]") + reset;
+        }
+        else if (chunk instanceof Error) {
+            unprocessed = "[red]".concat(chunk.toString()) + reset;
+        }
+        else if (chunk instanceof Player) {
+            var fishP = players_1.FishPlayer.get(chunk);
+            unprocessed = "[cyan](".concat(fishP.name, "[cyan])") + reset;
+        }
+        else if (typeof chunk == "string") {
+            if (globals_1.uuidPattern.test(chunk)) {
+                unprocessed = "[blue]".concat(chunk, "[]");
+            }
+            else if (globals_1.ipPattern.test(chunk)) {
+                unprocessed = "[blue]".concat(chunk, "[]");
+            }
+            else {
+                //TODO reset color?
+                unprocessed = chunk;
+            }
+        }
+        else if (typeof chunk == "boolean") {
+            unprocessed = "[blue]".concat(chunk.toString(), "[]");
+        }
+        else if (typeof chunk == "number") {
+            unprocessed = "[blue]".concat(chunk.toString(), "[]");
+        }
+        else if (chunk instanceof Administration.PlayerInfo) {
+            unprocessed = chunk.lastName + reset;
+        }
+        else if (chunk instanceof UnitType) {
+            unprocessed = "[cyan]".concat(i18n(chunk.name, locale), "[]");
+        }
+        else if (chunk instanceof Block) {
+            unprocessed = "[cyan]".concat(chunk.localizedName, "[]"); // i'm not localizing all blocks
+        }
+        else if (chunk instanceof Team) {
+            unprocessed = "[white][#".concat(chunk.color.toString(), "]").concat(chunk.emoji).concat(i18n(chunk.name, locale), "[][]");
+        }
+        else if (chunk instanceof Item) {
+            unprocessed = "[cyan]".concat(i18n(chunk.name, locale), "[]");
+        }
+        else {
+            chunk;
+            Log.err("Invalid format object!");
+            Log.info(chunk);
+            unprocessed = chunk; //allow it to get stringified by the engine
+        }
+        return flocfunc(unprocessed);
+    });
+}
+function i18nf(key, locale) {
+    var args = [];
+    for (var _i = 2; _i < arguments.length; _i++) {
+        args[_i - 2] = arguments[_i];
+    }
+    return (i18n(key, locale, locf(args, key, locale)));
+}
+function i18nfloc(key, locale, flocfunc) {
+    var args = [];
+    for (var _i = 3; _i < arguments.length; _i++) {
+        args[_i - 3] = arguments[_i];
+    }
+    return (i18n(key, locale, locf(args, key, locale)));
+}

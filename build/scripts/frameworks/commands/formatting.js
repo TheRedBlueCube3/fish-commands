@@ -180,6 +180,21 @@ exports.fFunctions = {
         if (decimals !== null)
             return [value.toFixed(decimals), value.toFixed(decimals)];
         return [value.toString(), value.toString()];
+    },
+    percentLocalize: function (value, locale, decimals) {
+        if (decimals === void 0) { decimals = 0; }
+        if (isNaN(value) || !isFinite(value))
+            return ["[gray]".concat((0, i18n_1.i18n)("na", locale), "[]"), "".concat((0, i18n_1.i18n)("na", locale))];
+        var percent = (value * 100).toFixed(decimals) + "%";
+        return ["".concat(percent), "".concat(percent)];
+    },
+    numberLocalize: function (value, locale, decimals) {
+        if (decimals === void 0) { decimals = null; }
+        if (isNaN(value) || !isFinite(value))
+            return ["[gray]".concat((0, i18n_1.i18n)("na", locale), "[]"), "".concat((0, i18n_1.i18n)("na", locale))];
+        if (decimals !== null)
+            return [value.toFixed(decimals), value.toFixed(decimals)];
+        return [value.toString(), value.toString()];
     }
 };
 exports.processedFFunctions = [0, 1].map(function (i) {

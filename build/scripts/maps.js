@@ -71,6 +71,7 @@ var __read = (this && this.__read) || function (o, n) {
 var _this = this;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FMap = exports.PartialMapRun = exports.FinishedMapRun = void 0;
+var i18n_1 = require("/frameworks/i18n");
 var config_1 = require("/config");
 var io_1 = require("/frameworks/io");
 var funcs_1 = require("/funcs");
@@ -182,26 +183,35 @@ var PartialMapRun = /** @class */ (function () {
         Events.on(EventType.GameOverEvent, function (e) {
             var _b;
             if (_a.current) {
-                var finishedRun = _a.current.finish({ winTeam: (_b = e.winner) !== null && _b !== void 0 ? _b : Team.derelict });
+                var finishedRun_1 = _a.current.finish({ winTeam: (_b = e.winner) !== null && _b !== void 0 ? _b : Team.derelict });
                 var fmap = FMap.getCreate(Vars.state.map);
                 if (!fmap)
                     return;
                 //Highscore message
-                if (config_1.Gamemode.attack() && finishedRun.success) {
-                    var bestPreviousTime = fmap.stats().shortestWinTime;
-                    var duration = finishedRun.duration();
-                    Call.sendMessage("[orange]--------\n".concat(finishedRun.success && duration < bestPreviousTime ?
-                        "[green]New highscore! Map completed in [accent]".concat((0, utils_1.formatTimeShort)(duration), "[]")
-                        : "[orange]Map completed in [accent]".concat((0, utils_1.formatTimeShort)(duration), "[]. Current highscore: [green]").concat((0, utils_1.formatTimeShort)(bestPreviousTime), "[]"), "\n[orange]--------"));
+                if (config_1.Gamemode.attack() && finishedRun_1.success) {
+                    var bestPreviousTime_1 = fmap.stats().shortestWinTime;
+                    var duration_1 = finishedRun_1.duration();
+                    // 					Call.sendMessage(
+                    // `[orange]--------
+                    // ${finishedRun.success && duration < bestPreviousTime ?
+                    // 	`[green]New highscore! Map completed in [accent]${formatTimeShort(duration)}[]`
+                    // : `[orange]Map completed in [accent]${formatTimeShort(duration)}[]. Current highscore: [green]${formatTimeShort(bestPreviousTime)}[]`}
+                    // [orange]--------`
+                    // 					);
+                    (0, i18n_1.sendLocMessageCB)('maps.finished', function (locale, localize) { return [
+                        finishedRun_1.success && duration_1 < bestPreviousTime_1
+                            ? localize('maps.attack.highscore', [(0, utils_1.formatTimeShortLocalize)(duration_1, locale)])
+                            : localize('maps.attack.finished', [(0, utils_1.formatTimeShortLocalize)(duration_1, locale), (0, utils_1.formatTimeShortLocalize)(bestPreviousTime_1, locale)])
+                    ]; });
                 }
                 else if (config_1.Gamemode.survival()) {
                     var bestPreviousWave = fmap.stats().highestWave;
-                    var wave = finishedRun.wave;
-                    Call.sendMessage("[orange]--------\n".concat(finishedRun.success && wave < bestPreviousWave ?
+                    var wave = finishedRun_1.wave;
+                    Call.sendMessage("[orange]--------\n".concat(finishedRun_1.success && wave < bestPreviousWave ?
                         "[green]New highscore! Reached wave [accent]".concat(wave, "[].")
                         : "[orange]Reached wave [accent]".concat(wave, "[]. Current highscore: [green]").concat(bestPreviousWave, "[]"), "\n[orange]--------"));
                 }
-                fmap.runs.push(finishedRun);
+                fmap.runs.push(finishedRun_1);
                 globals_1.FishEvents.fire("saveMaps", []);
             }
             Core.settings.remove(_a.key);
@@ -292,23 +302,62 @@ var FMap = function () {
                     mostRecentWin: (_c = victories.at(-1)) === null || _c === void 0 ? void 0 : _c.startTime
                 };
             };
-            FMap.prototype.displayStats = function (f) {
+            FMap.prototype.displayStats = function (f, locale) {
                 var map = this.map;
                 if (!map)
                     return null;
                 var stats = this.stats();
                 var rules = this.rules();
                 var modeSpecificStats = (0, utils_1.match)(config_1.Gamemode.name(), {
-                    attack: "[#CCFFCC]Total runs: ".concat(stats.allRunCount, " (").concat(stats.victories, " wins, ").concat(stats.totalLosses, " losses, ").concat(stats.earlyRTVs, " RTVs)\n[#CCFFCC]Outcomes: ").concat(f.percent(stats.winRate, 1), " wins, ").concat(f.percent(stats.lossRate, 1), " losses, ").concat(f.percent(stats.earlyRTVRate, 1), " RTVs\n[#CCFFCC]Average playtime: ").concat((0, utils_1.formatTime)(stats.averagePlaytime), "\n[#CCFFCC]Shortest win time: ").concat((0, utils_1.formatTime)(stats.shortestWinTime), "\n[#CCFFCC]Most recent win: ").concat(stats.mostRecentWin ? (0, utils_1.formatTimestamp)(stats.mostRecentWin) : "[red]none[]"),
-                    survival: "[#CCFFCC]Highest wave reached: ".concat(stats.highestWave, "\n[#CCFFCC]Average wave reached: ").concat(stats.averageWave, "\n[#CCFFCC]Total runs: ").concat(stats.allRunCount, " (").concat(stats.earlyRTVs, " RTVs)\n[#CCFFCC]RTV rate: ").concat(f.percent(stats.earlyRTVRate, 1), "\n[#CCFFCC]Average duration: ").concat((0, utils_1.formatTime)(stats.averagePlaytime), "\n[#CCFFCC]Longest duration: ").concat((0, utils_1.formatTime)(stats.longestTime)),
-                    pvp: "[#CCFFCC]Total runs: ".concat(stats.allRunCount, " (").concat(stats.earlyRTVs, " RTVs)\n[#CCFFCC]Team win rates: ").concat(Object.entries(stats.teamWinRate).map(function (_c) {
+                    // 			attack: `\
+                    // [#CCFFCC]Total runs: ${stats.allRunCount} (${stats.victories} wins, ${stats.totalLosses} losses, ${stats.earlyRTVs} RTVs)
+                    // [#CCFFCC]Outcomes: ${f.percent(stats.winRate, 1)} wins, ${f.percent(stats.lossRate, 1)} losses, ${f.percent(stats.earlyRTVRate, 1)} RTVs
+                    // [#CCFFCC]Average playtime: ${formatTime(stats.averagePlaytime)}
+                    // [#CCFFCC]Shortest win time: ${formatTime(stats.shortestWinTime)}
+                    // [#CCFFCC]Most recent win: ${stats.mostRecentWin ? formatTimestamp(stats.mostRecentWin) : "[red]none[]"}`,
+                    attack: (0, i18n_1.i18n)("maps.attack.stats", locale, stats.allRunCount, stats.victories, stats.totalLosses, stats.earlyRTVs, f.percent(stats.winRate, 1), f.percent(stats.lossRate, 1), f.percent(stats.earlyRTVRate, 1), (0, utils_1.formatTimeLocalize)(stats.averagePlaytime, locale), (0, utils_1.formatTimeLocalize)(stats.shortestWinTime, locale), stats.mostRecentWin ? (0, utils_1.formatTimestamp)(stats.mostRecentWin, locale) : (0, i18n_1.i18n)("maps.none", locale)),
+                    // survival: `\
+                    // [#CCFFCC]Highest wave reached: ${stats.highestWave}
+                    // [#CCFFCC]Average wave reached: ${stats.averageWave}
+                    // [#CCFFCC]Total runs: ${stats.allRunCount} (${stats.earlyRTVs} RTVs)
+                    // [#CCFFCC]RTV rate: ${f.percent(stats.earlyRTVRate, 1)}
+                    // [#CCFFCC]Average duration: ${formatTime(stats.averagePlaytime)}
+                    // [#CCFFCC]Longest duration: ${formatTime(stats.longestTime)}`,
+                    survival: (0, i18n_1.i18n)("maps.survival.stats", locale, stats.highestWave, stats.averageWave, stats.allRunCount, stats.earlyRTVs, f.percent(stats.earlyRTVRate, 1), (0, utils_1.formatTimeLocalize)(stats.averagePlaytime, locale), (0, utils_1.formatTimeLocalize)(stats.longestTime, locale)),
+                    // 			pvp: `\
+                    // [#CCFFCC]Total runs: ${stats.allRunCount} (${stats.earlyRTVs} RTVs)
+                    // [#CCFFCC]Team win rates: ${Object.entries(stats.teamWinRate).map(([team, rate]) => `${team} ${f.percent(rate, 1)}`).join(", ")}
+                    // [#CCFFCC]RTV rate: ${f.percent(stats.earlyRTVRate, 1)}
+                    // [#CCFFCC]Average match duration: ${formatTime(stats.averagePlaytime)}
+                    // [#CCFFCC]Shortest match duration: ${formatTime(stats.shortestWinTime)}`,
+                    pvp: (0, i18n_1.i18n)("maps.pvp.stats", locale, stats.allRunCount, stats.earlyRTVs, Object.entries(stats.teamWinRate).map(function (_c) {
                         var _d = __read(_c, 2), team = _d[0], rate = _d[1];
-                        return "".concat(team, " ").concat(f.percent(rate, 1));
-                    }).join(", "), "\n[#CCFFCC]RTV rate: ").concat(f.percent(stats.earlyRTVRate, 1), "\n[#CCFFCC]Average match duration: ").concat((0, utils_1.formatTime)(stats.averagePlaytime), "\n[#CCFFCC]Shortest match duration: ").concat((0, utils_1.formatTime)(stats.shortestWinTime)),
-                    hexed: "[#CCFFCC]Total runs: ".concat(stats.allRunCount, " (").concat(stats.earlyRTVs, " RTVs)\n[#CCFFCC]RTV rate: ").concat(f.percent(stats.earlyRTVRate, 1), "\n[#CCFFCC]Average match duration: ").concat((0, utils_1.formatTime)(stats.averagePlaytime), "\n[#CCFFCC]Shortest match duration: ").concat((0, utils_1.formatTime)(stats.shortestWinTime)),
-                    sandbox: "[#CCFFCC]Total plays: ".concat(stats.allRunCount, "\n[#CCFFCC]Average play time: ").concat((0, utils_1.formatTime)(stats.averagePlaytime), "\n[#CCFFCC]Shortest play time: ").concat((0, utils_1.formatTime)(stats.shortestTime)),
+                        return "".concat((0, i18n_1.i18n)(team, locale), " ").concat(f.percent(rate, 1));
+                    }).join(", "), f.percent(stats.earlyRTVRate, 1), (0, utils_1.formatTimeLocalize)(stats.averagePlaytime, locale), (0, utils_1.formatTimeLocalize)(stats.shortestWinTime, locale)),
+                    // 			hexed: `\
+                    // [#CCFFCC]Total runs: ${stats.allRunCount} (${stats.earlyRTVs} RTVs)
+                    // [#CCFFCC]RTV rate: ${f.percent(stats.earlyRTVRate, 1)}
+                    // [#CCFFCC]Average match duration: ${formatTime(stats.averagePlaytime)}
+                    // [#CCFFCC]Shortest match duration: ${formatTime(stats.shortestWinTime)}`,
+                    hexed: (0, i18n_1.i18n)("maps.hexed.stats", locale, stats.allRunCount, stats.earlyRTVs, f.percent(stats.earlyRTVRate, 1), (0, utils_1.formatTime)(stats.averagePlaytime), (0, utils_1.formatTime)(stats.shortestWinTime)),
+                    // 			sandbox: `\
+                    // [#CCFFCC]Total plays: ${stats.allRunCount}
+                    // [#CCFFCC]Average play time: ${formatTime(stats.averagePlaytime)}
+                    // [#CCFFCC]Shortest play time: ${formatTime(stats.shortestTime)}`,
+                    sandbox: (0, i18n_1.i18n)("maps.sandbox.stats", locale, stats.allRunCount, (0, utils_1.formatTimeLocalize)(stats.averagePlaytime, locale), (0, utils_1.formatTimeLocalize)(stats.shortestTime, locale))
                 }, "");
-                return ("[coral]".concat(map.name(), "\n[gray](").concat(map.file.name(), ")\n\n[accent]Map by: [white]").concat(map.author(), "\n[accent]Description: [white]").concat(map.description(), "\n[accent]Size: [white]").concat(map.width, "x").concat(map.height, "\n[accent]Last updated: [white]").concat(new Date(map.file.lastModified()).toLocaleDateString(), "\n[accent]BvB allowed: ").concat(f.boolGood(rules.placeRangeCheck), ", unit item transfer allowed: ").concat(f.boolGood(rules.onlyDepositCore), "\n\n").concat(modeSpecificStats, "\n[#CCFFCC]Longest play time: ").concat((0, utils_1.formatTime)(stats.longestTime), "\n[#CCFFCC]Average player count: ").concat(f.number(stats.averageHighestPlayerCount, 1)));
+                // 		return (`\
+                // [coral]${map.name()}
+                // [gray](${map.file.name()})
+                // [accent]Map by: [white]${map.author()}
+                // [accent]Description: [white]${map.description()}
+                // [accent]Size: [white]${map.width}x${map.height}
+                // [accent]Last updated: [white]${new Date(map.file.lastModified()).toLocaleDateString()}
+                // [accent]BvB allowed: ${f.boolGood(rules.placeRangeCheck)}, unit item transfer allowed: ${f.boolGood(rules.onlyDepositCore)}
+                // ${modeSpecificStats}
+                // [#CCFFCC]Longest play time: ${formatTime(stats.longestTime)}
+                // [#CCFFCC]Average player count: ${f.number(stats.averageHighestPlayerCount, 1)}`
+                return (0, i18n_1.i18n)("maps.generalinfo", locale, map.name(), map.file.name(), map.author(), map.description(), map.width, map.height, new Date(map.file.lastModified()).toLocaleDateString(locale), f.boolGoodLocalize(!rules.placeRangeCheck, locale), f.boolGoodLocalize(!rules.onlyDepositCore, locale), modeSpecificStats, (0, utils_1.formatTimeLocalize)(stats.longestTime, locale), f.numberLocalize(stats.averageHighestPlayerCount, locale, 1));
             };
             return FMap;
         }(_classSuper)),

@@ -1518,6 +1518,16 @@ var FishPlayer = /** @class */ (function () {
             this.lastRatelimitedMessage = Date.now();
         }
     };
+    /**
+     * Localizes a key into the locale of this player.
+     */
+    FishPlayer.prototype.localize = function (key) {
+        var args = [];
+        for (var _i = 1; _i < arguments.length; _i++) {
+            args[_i - 1] = arguments[_i];
+        }
+        return i18n_1.i18n.apply(void 0, __spreadArray([key, this.locale], __read(args), false));
+    };
     FishPlayer.prototype.showRules = function (options) {
         if (options === void 0) { options = []; }
         return menus_1.Menu.menu((0, i18n_1.i18n)("welcome.rules.menu.title", this.locale), config_1.rules.join("\n\n[white]") + (0, i18n_1.i18n)("welcome.rules.menu.viewagain", this.locale), __spreadArray([(0, i18n_1.i18n)("welcome.rules.agree", this.locale)], __read(options), false), this, { onCancel: "null" });
